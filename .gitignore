@@ -1,0 +1,173 @@
+# Quantum Mechanics Simulation (QMSim) .gitignore
+# Created April 23, 2025
+
+# Build directories
+/build/
+/out/
+/x64/
+/Release/
+/Debug/
+/RelWithDebInfo/
+/MinSizeRel/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+_deps/
+CTestTestfile.cmake
+.cmake/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+
+# Visual Studio specific files
+.vs/
+ipch/
+*.suo
+*.user
+*.userosscache
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+*.VC.VC.opendb
+*.psess
+*.vsp
+*.vspx
+
+# Compiled Object files, libraries and executables
+*.slo
+*.lo
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+*.exe
+*.out
+*.app
+*.ilk
+*.pdb
+*.idb
+
+# Generated data
+/output/
+/checkpoints/
+*.hdf5
+*.h5
+*.csv
+*.dat
+
+# vcpkg (keep scripts but ignore build artifacts)
+/vcpkg/buildtrees/
+/vcpkg/downloads/
+/vcpkg/installed/
+/vcpkg/packages/
+/vcpkg/*.exe
+/vcpkg/*.log
+
+# System specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+.directory
+.fuse_hidden*
+
+# Mac specific
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+*.dmg
+*.app
+
+# Linux specific
+*~
+.~lock.*
+*.swp
+*.swo
+core
+core.*
+vgcore.*
+.nfs*
+
+# IDE configuration
+.idea/
+.vscode/
+*.swp
+*~
+.vs/
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+# Emacs
+\#*\#
+.\#*
+*~
+.emacs.desktop
+.emacs.desktop.lock
+auto-save-list
+tramp
+# Eclipse
+.metadata
+.project
+.classpath
+.settings/
+.loadpath
+.recommenders
+
+# Dependency lock files
+vcpkg.lock
+vcpkg_installed/
+
+# Temporary and log files
+*.tmp
+*.temp
+*.log
+*.bak
+.*.swp
+Session.vim
+.netrwhist
+
+# FFTW wisdom files
+*.wisdom
+
+# Build system specific
+Makefile.in
+aclocal.m4
+autom4te.cache/
+configure
+config.log
+config.status
+depcomp
+install-sh
+missing
+
+# Environment specific
+.env
+.env.local
+.python-version
+
+# Jupyter notebook checkpoints (if generating Python visuals)
+.ipynb_checkpoints/

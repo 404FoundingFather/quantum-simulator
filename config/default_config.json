@@ -1,0 +1,24 @@
+{
+  "grid": {
+    "nx": 512,
+    "ny": 512
+  },
+  "dt": 0.001,
+  "potential": {
+    "type": "FreeSpace",
+    "parameters": {}
+  },
+  "wavepacket": {
+    "x0": 256.0,
+    "y0": 256.0,
+    "sigmaX": 10.0,
+    "sigmaY": 10.0,
+    "kx": 0.0,
+    "ky": 0.0
+  },
+  "omega": 1.0,
+  "output": {
+    "checkpointInterval": 0.1,
+    "exportObservables": true
+  }
+}

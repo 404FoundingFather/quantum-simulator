@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        build-type: [Release, Debug]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup CMake
+        uses: lukka/get-cmake@v3
+      - name: Install Dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfftw3-dev libfftw3-doc libglfw3-dev libglm-dev
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build-type }}
+      - name: Run Tests
+        run: ctest --test-dir build --output-on-failure
+      - name: Code Style Check
+        run: |
+          clang-format --version || true
+          clang-format -i src/**/*.cpp include/**/*.h || true
+          clang-tidy --version || true
+          clang-tidy src/**/*.cpp -- -Iinclude || true
+      - name: Upload Coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.build-type == 'Debug'
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: build/coverage
