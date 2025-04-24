@@ -72,6 +72,14 @@ The application is structured into core modules to separate concerns and maximiz
   * Normalization: ✅ Stub implemented
   * Probability density calculation: ✅ Stub implemented
 
+- **SimulationEngine**: ✅ Complete with SSFM implementation
+  * Split-Step Fourier Method: ✅ Complete with second-order symmetric splitting
+  * Kinetic energy operator: ✅ Complete
+  * Potential energy operator: ✅ Complete
+  * FFT integration: ✅ Complete with FFTW
+  * Grid management: ✅ Complete
+  * Time evolution: ✅ Complete and validated
+
 - **UI and Visualization**: ✅ Basic implementation
   * `UIManager`: ✅ Complete with ImGui widgets
   * `VisualizationEngine`: ✅ Complete with OpenGL rendering
@@ -80,5 +88,6 @@ The application is structured into core modules to separate concerns and maximiz
   * Unit tests for Potential: ✅ Complete (6 test cases)
   * Unit tests for Wavefunction: ✅ Complete (6 test cases)
   * Unit tests for SimulationEngine: ✅ Complete (12 test cases)
+  * Integration tests: ✅ Complete (1 test case)
 
 > See code organization in 02-techContext.md for directory structure and build instructions.

@@ -16,6 +16,12 @@
   - `normalize()`: To ensure probability conservation
   - `getProbabilityDensity()`: For visualization purposes
   - `getTotalProbability()`: For validation and monitoring
+- **Implemented `SimulationEngine` with complete Split-Step Fourier Method (SSFM) algorithm:**
+  - Second-order symmetric splitting approach for high accuracy
+  - Proper Fourier transform operations using FFTW
+  - Kinetic and potential operator application in appropriate spaces
+  - Verified with comprehensive unit and integration tests
+  - Handles all potential types correctly
 - Memory-Bank documentation synchronized with design document (00-index through 07-kanban)
 - Project scaffold: `src/`, `tests/`, `config/`, `assets/`, `memory-bank/`, and top-level CMakeLists
 - Default JSON config file (`config/default_config.json`)
@@ -32,12 +38,17 @@
 - Updated technical context, system patterns, and UI design documents
 - Updated `README.md`, `02-techContext.md`, and `09-environment.md` with platform-specific install steps
 - Updated CMake files to link correct imported targets (`FFTW3::fftw3`, `OpenGL::GL`, `imgui::imgui`, `glad::glad`)
+- **Enhanced `SimulationEngine` with reliable time evolution capabilities:**
+  - Implemented robust wave function initialization
+  - Added proper probability conservation checks
+  - Ensured correct handling of different grid sizes and time steps
 
 ### Fixed
 - Resolved naming conflict between `Potential` class and `Potential` struct
 - Fixed GLFW window forward declaration issue in UIManager
 - Resolved missing `fftw3_threads` and `OpenGL::GL` targets by correcting package find and link targets
 - Flagged and documented ImGui backend include path error in kanban
+- **Fixed OpenMP compilation issues in `SimulationEngine` by making it work without explicit OpenMP dependencies**
 
 ### Removed
 - Placeholder sections in memory-bank files

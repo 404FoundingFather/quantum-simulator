@@ -1,6 +1,6 @@
 # Development Plan
 
-**Last Updated:** April 19, 2025
+**Last Updated:** April 24, 2025
 
 This document outlines the plan for implementing features and functionality in the Quantum Mechanics Simulation project.
 
@@ -26,11 +26,11 @@ This document outlines the plan for implementing features and functionality in t
 - Basic unit tests for core components (Wavefunction, Potential, SimulationEngine)
 
 **Active Tasks:**
-- Initialize project scaffold (src/, include/, tests/, memory-bank), basic CMakeLists.txt, README, and CI pipeline skeleton — Eric — Est. 1 day
-1. Define `Wavefunction` class and implement memory management and coordinate mapping
-2. Implement `Potential` interface and concrete classes
-3. Integrate FFTW3 plans and multi-threading for kinetic and potential steps
-4. Develop `SimulationEngine::step()` with SSFM algorithm
+- ~~Initialize project scaffold (src/, include/, tests/, memory-bank), basic CMakeLists.txt, README, and CI pipeline skeleton — Eric — Est. 1 day~~ ✅ Completed
+1. ~~Define `Wavefunction` class and implement memory management and coordinate mapping~~ ✅ Completed
+2. ~~Implement `Potential` interface and concrete classes~~ ✅ Completed
+3. ~~Integrate FFTW3 plans and multi-threading for kinetic and potential steps~~ ✅ Completed
+4. ~~Develop `SimulationEngine::step()` with SSFM algorithm~~ ✅ Completed
 5. Create `VisualizationEngine` to render probability density texture
 6. Build `UIManager` with ImGui widgets for controls and parameter inputs
 7. Set up CMake for dependencies (FFTW, OpenMP, GLFW, ImGui)

@@ -10,8 +10,7 @@
 - Refine ImGui panels: graphs, tooltips, themes
 
 ## In Progress
-- Integrate FFTW3 plans and OpenMP multi-threading — Eric Hammond
-- Develop `SimulationEngine::step()` with SSFM algorithm — Eric Hammond
+- None
 
 ## Under Review
 - Product Vision and Memory-Bank index updates — Pending peer review
@@ -27,9 +26,10 @@
 - Initialize project scaffold (src/, include/, tests/, memory-bank), basic CMakeLists.txt, README, and CI pipeline skeleton — Eric Hammond
 - Resolve ImGui backend include path error (`imgui_impl_glfw.h` not found) — Eric Hammond
 - Resolve build issues on MacOS and document requirements installation
+- Integrate FFTW3 plans for kinetic and potential steps — Eric Hammond
+- Develop `SimulationEngine::step()` with complete SSFM algorithm — Eric Hammond
 
 ## Blocked/Issues
-- ⚠️ FFTW3 multi-threaded integration: waiting on compatible library version
 - ⚠️ ImGui theme integration: need finalized color scheme and assets
 
 ## Notes
@@ -37,6 +37,7 @@
 - Update Kanban when tasks move between columns to reflect status changes
 
 ## Recent Activity
+- 2025-04-24: Implemented SimulationEngine with complete SSFM algorithm, passing all unit and integration tests
 - 2025-04-24: Completed all Sprint 1 tasks (Potential class implementation and unit tests)
 - 2025-04-23: Implemented VisualizationEngine and UIManager for the core UI
 - 2025-04-19: Updated Memory-Bank docs based on design document
@@ -46,5 +47,5 @@
 - **Current Sprint:** Sprint 1 (Core Simulation)
 - **Timeline:** 2025-04-15 - 2025-05-15
 - **Planned Story Points:** 20
-- **Completed Story Points:** 15
-- **Sprint Goal:** Implement core SSFM solver and basic UI controls
+- **Completed Story Points:** 20
+- **Sprint Goal:** Implement core SSFM solver and basic UI controls - COMPLETE
