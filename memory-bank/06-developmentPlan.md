@@ -66,27 +66,51 @@ This document outlines the plan for implementing features and functionality in t
 
 ## Current Sprint/Iteration
 
-**Sprint/Iteration:** Sprint 1 (Phase 1)
-**Timeline:** 2025-04-15 - 2025-04-29
+**Sprint/Iteration:** Sprint 1 (Phase 1) - COMPLETED
+**Timeline:** 2025-04-15 - 2025-04-24
 **Goal:** Complete core SSFM solver, wavefunction, potential modules, and basic ImGui UI
 
+**Sprint/Iteration:** Sprint 2 (Phase 1) - ACTIVE
+**Timeline:** 2025-04-25 - 2025-05-08
+**Goal:** Complete integration of components and implement real-time quantum visualization
+
 ### Active Tasks
-- Initialize project scaffold & CI setup — Eric — Est. 1 day
-- Wavefunction class & Gaussian init — Eric — Est. 3 days
-- Potential interface & Free Space, Barrier, Harmonic — Eric — Est. 2 days
-- Integrate FFTW3 + OpenMP plans — Eric — Est. 2 days
-- SimulationEngine::step() implementation — Eric — Est. 4 days
-- VisualizationEngine OpenGL texture pipeline — Eric — Est. 3 days
-- UIManager ImGui layout & controls — Eric — Est. 3 days
-- CMake dependency config — Eric — Est. 1 day
-- Unit tests for core modules — QA — Est. 2 days
-- Resolve ImGui backend include path error (`imgui_impl_glfw.h` not found) — Eric — Est. 0.5 day
+- **Connect and Integrate Core Components** — Eric — Est. 2 days
+  - Integrate SimulationEngine, VisualizationEngine, and UIManager in the main application
+  - Update the main rendering loop to step simulation, process results, and visualize
+  - Implement synchronization between simulation, UI, and rendering
+  
+- **Enhance UI Controls** — Eric — Est. 3 days
+  - Add simulation parameter controls (dt, grid size, domain size)
+  - Create potential selection dropdowns and parameter inputs
+  - Implement wavepacket configuration controls
+  - Add simulation control buttons (start, stop, reset, single step)
+  - Create parameter validation and error handling
+  
+- **Add Performance Metrics and Visualization Display** — Eric — Est. 2 days
+  - Add FPS counter and simulation time display
+  - Implement total probability conservation monitoring
+  - Add colormap selection for visualization
+  - Create display panel for key quantum observables
+  - Implement zoom and pan controls for the visualization
+
+- **Refine User Experience** — Eric — Est. 2 days
+  - Improve UI layout and usability
+  - Add tooltips and help text
+  - Implement keyboard shortcuts for common actions
+  - Create presets for interesting quantum scenarios (tunneling, interference, etc.)
+  - Improve error messaging and parameter validation
+
+- **Performance Optimization** — Eric — Est. 1 day
+  - Profile and optimize critical rendering paths
+  - Implement adaptive step size for better stability
+  - Optimize memory usage and reduce allocations
+  - Improve FFTW plan caching and reuse
 
 ### Dependencies
-- Task 4 depends on Tasks 1–3
-- Task 5 depends on Task 4
-- Task 6 depends on Tasks 5 and 7
-- Task 8 requires Tasks 1–6
+- All tasks depend on completed SSFM implementation (already done)
+- Performance Optimization depends on Connect and Integrate Core Components
+- Refine User Experience depends on Enhance UI Controls
 
 ## Development Workflow
 
@@ -114,34 +138,35 @@ This document outlines the plan for implementing features and functionality in t
 
 ## Implementation Details
 
-### Feature: Core Simulation Engine
-**Approach:** Modular solver with SSFM steps
+### Feature: Application Integration
+**Approach:** Connect SimulationEngine, VisualizationEngine, and UIManager
 **Components:**
-- `Wavefunction` (memory+mapping)
-- `Potential` hierarchy
-- `SimulationEngine::step()` (kinetic + potential)
-- FFTW3 plan manager
+- Main application loop
+  - Initialize components with proper configuration
+  - Create simulation step timing
+  - Handle UI events and simulation control
+  - Dispatch simulation results to visualization
+- Command pattern for UI actions
+- Observer pattern for updates between simulation and visualization
 
-### Feature: Real-Time Visualization UI
-**Approach:** Dear ImGui panel + OpenGL texture update each frame
+### Feature: Enhanced UI Controls
+**Approach:** Complete ImGui interface with robust controls
 **Components:**
-- `VisualizationEngine` (shaders, texture upload)
-- `UIManager` (controls, bindings, tooltips)
-- Keyboard shortcuts and tooltips
+- Simulation parameters panel
+- Potential selection and configuration
+- Wavepacket initialization panel
+- Control buttons with keyboard shortcuts
+- Visual validation feedback
+- Presets for common scenarios
 
-### Feature: Persistence & Export
-**Approach:** File-based checkpoint and CSV/JSON export
+### Feature: Performance Metrics
+**Approach:** Real-time monitoring dashboard
 **Components:**
-- `CheckpointSerializer` (HDF5/JSON)
-- `DataExporter` (CSV/JSON writer)
-- UI export buttons and dialogs
-
-### Feature: Diagnostics & Monitoring
-**Approach:** Real-time metrics and plots
-**Components:**
-- ImGui plot widgets for P_total, energy vs time
-- Circular buffer for time series data
-- Export and clear functions
+- FPS counter and timing metrics
+- Probability conservation monitor
+- Information panel with key quantum values
+- Status indicators for simulation state
+- Performance warning system
 
 ## Dependencies and Risks
 
