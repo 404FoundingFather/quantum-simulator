@@ -21,11 +21,69 @@ This project simulates 2D quantum wavepacket dynamics using the Split‑Step Fou
      sudo apt-get update
      sudo apt-get install -y build-essential cmake libfftw3-dev libfftw3-doc libglfw3-dev libglew-dev libglm-dev
      ```
+   
    - macOS (11+):
+     
+     **Option 1: Using vcpkg (Recommended for complete compatibility)**
+     
+     This approach ensures all dependencies are properly integrated with the build system, especially Dear ImGui which is not available through Homebrew.
+     
      ```bash
+     # 1. Bootstrap vcpkg (only needed once)
+     git clone https://github.com/Microsoft/vcpkg.git
+     cd vcpkg
+     ./bootstrap-vcpkg.sh
+     cd ..
+     
+     # 2. Install dependencies via vcpkg with the correct architecture
+     # For Apple Silicon (M1/M2/M3) Macs:
+     ./vcpkg/vcpkg install fftw3:arm64-osx glfw3:arm64-osx glad:arm64-osx nlohmann-json:arm64-osx hdf5:arm64-osx "imgui[glfw-binding,opengl3-binding]:arm64-osx" --recurse
+     
+     # For Intel Macs:
+     ./vcpkg/vcpkg install fftw3:x64-osx glfw3:x64-osx glad:x64-osx nlohmann-json:x64-osx hdf5:x64-osx "imgui[glfw-binding,opengl3-binding]:x64-osx" --recurse
+     
+     # 3. Install OpenMP using Homebrew (not included in vcpkg for macOS)
      brew update
-     brew install cmake fftw glfw glew glm
+     brew install libomp
+     
+     # 4. Install additional tools via Homebrew (optional)
+     brew install python@3.12
      ```
+     
+     **Option 2: Using Homebrew (Simpler but requires manual ImGui setup)**
+     
+     ```bash
+     # Update Homebrew
+     brew update
+     
+     # Install required dependencies
+     brew install cmake fftw glfw glew glm libomp
+     
+     # Install optional dependencies
+     brew install nlohmann-json hdf5 python@3.12
+     
+     # Verify installations
+     brew list --versions cmake fftw glfw glew glm libomp
+     
+     # Note: Dear ImGui is not available via Homebrew and must be installed manually
+     # or integrated as a git submodule if using this approach
+     ```
+     
+     **Note for Apple Silicon (M1/M2/M3) Macs:**
+     - Make sure you're using the correct architecture when installing with vcpkg
+     - By default, CMake will detect and use your native architecture
+     - If you need to specifically target an architecture, you can use:
+       ```bash
+       # For native ARM64 builds (only needed if you want to override the default)
+       cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64
+       
+       # For Intel compatibility builds on Apple Silicon
+       cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64
+       
+       # For universal binaries (larger but work on both architectures)
+       cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+       ```
+   
    - Windows:
      1. Install Visual Studio 2022 or newer with "Desktop development with C++" workload.
      1.a. Ensure CMake is installed: download and run the Windows installer from https://cmake.org/download/, or install via Chocolatey (`choco install cmake`) or Winget (`winget install --id Kit.CMake`).
@@ -55,13 +113,51 @@ This project simulates 2D quantum wavepacket dynamics using the Split‑Step Fou
 3. Create build directory and configure:
    ```bash
    mkdir build && cd build
+   
+   # For standard builds:
    cmake .. -DCMAKE_BUILD_TYPE=Release
+   
+   # If using vcpkg on macOS, specify the toolchain file:
+   cmake .. -DCMAKE_TOOLCHAIN_FILE=../vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
    ```
+
 4. Build and run:
    ```bash
    cmake --build .
    ./quantum_simulator
    ```
+
+## Simple Build with Make
+
+A Makefile is provided in the root directory for easier building. It automatically detects your platform and configures the build accordingly.
+
+```bash
+# Display all available make targets and options
+make help
+
+# Build the project (detects OS and architecture automatically)
+make
+
+# Install dependencies on macOS (uses vcpkg and Homebrew)
+make deps
+
+# Build and run the simulator
+make run
+
+# Build and run tests
+make test
+
+# Clean the build directory
+make clean
+
+# Clean and rebuild from scratch
+make rebuild
+
+# Build in debug mode
+make BUILD_TYPE=Debug
+```
+
+The Makefile will automatically detect if you're using Apple Silicon or Intel on macOS and use the appropriate vcpkg triplet.
 
 ## Project Structure
 ```

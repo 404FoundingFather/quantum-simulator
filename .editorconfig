@@ -1,4 +1,5 @@
-# EditorConfig is awesome: https://EditorConfig.org
+# EditorConfig for Quantum Mechanics Simulation (QMSim)
+# https://editorconfig.org/
 
 # Top-most EditorConfig file
 root = true
@@ -9,42 +10,41 @@ end_of_line = lf
 insert_final_newline = true
 charset = utf-8
 trim_trailing_whitespace = true
-
-# C/C++ specific settings
-[*.{c,cpp,h,hpp}]
 indent_style = space
 indent_size = 4
 
-# CMake settings
+# C++ source files
+[*.{cpp,h,hpp}]
+indent_size = 4
+
+# CMake files
 [{CMakeLists.txt,*.cmake}]
-indent_style = space
+indent_size = 2
+
+# JSON, YAML files
+[*.{json,yml,yaml}]
 indent_size = 2
 
 # Markdown files
 [*.md]
 trim_trailing_whitespace = false
 
-# JSON files
-[*.json]
-indent_style = space
+# Shell scripts
+[*.sh]
 indent_size = 2
+
+# Makefiles require tab indentation
+[Makefile]
+indent_style = tab
 
 # Python files
 [*.py]
-indent_style = space
 indent_size = 4
 
-# Shader files
+# GLSL shader files
 [*.{glsl,vert,frag}]
-indent_style = space
 indent_size = 4
 
-# Web files
-[*.{html,css,js}]
-indent_style = space
-indent_size = 2
-
-# YAML files
-[*.{yaml,yml}]
-indent_style = space
+# Config files
+[*.{ini,conf}]
 indent_size = 2

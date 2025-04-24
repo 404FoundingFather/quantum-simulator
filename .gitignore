@@ -14,7 +14,7 @@
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
-Makefile
+/build/Makefile
 compile_commands.json
 _deps/
 CTestTestfile.cmake
@@ -23,6 +23,9 @@ CTestTestfile.cmake
 *.vcxproj.filters
 *.vcxproj.user
 *.sln
+
+# Allow our root Makefile (but ignore CMake-generated ones)
+/Makefile
 
 # Visual Studio specific files
 .vs/
