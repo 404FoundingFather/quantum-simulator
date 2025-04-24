@@ -1,12 +1,22 @@
 # Changelog
 
-**Last Updated:** April 19, 2025
+**Last Updated:** April 24, 2025
 
 ## Unreleased
 
 ### Added
+- Comprehensive unit tests for core modules (Wavefunction, Potential, SimulationEngine)
+- `Potential` abstract base class and concrete implementations:
+  - `FreeSpacePotential`: Zero potential everywhere
+  - `SquareBarrierPotential`: Configurable barrier height, width, and position
+  - `HarmonicOscillatorPotential`: Standard harmonic oscillator with configurable frequency
+- Factory method for creating different potential types from configuration
+- Upgraded `Wavefunction` class with improved methods:
+  - `initializeGaussian()`: For creating 2D Gaussian wavepackets
+  - `normalize()`: To ensure probability conservation
+  - `getProbabilityDensity()`: For visualization purposes
+  - `getTotalProbability()`: For validation and monitoring
 - Memory-Bank documentation synchronized with design document (00-index through 07-kanban)
-- New architectural ADRs and code snippets patterns
 - Project scaffold: `src/`, `tests/`, `config/`, `assets/`, `memory-bank/`, and top-level CMakeLists
 - Default JSON config file (`config/default_config.json`)
 - Stub implementations: `main.cpp`, `Wavefunction`, `SimulationEngine`, `UIManager`, `VisualizationEngine`
@@ -16,23 +26,26 @@
 - Windows, Linux, macOS setup instructions in README and environment docs
 
 ### Changed
+- Renamed `Potential` struct to `PotentialConfig` in PhysicsConfig.h to avoid naming conflicts
+- Updated `UIManager` to support all planned potential types and parameters
+- Completed initial `VisualizationEngine` implementation with proper GLSL shader setup
 - Updated technical context, system patterns, and UI design documents
 - Updated `README.md`, `02-techContext.md`, and `09-environment.md` with platform-specific install steps
 - Updated CMake files to link correct imported targets (`FFTW3::fftw3`, `OpenGL::GL`, `imgui::imgui`, `glad::glad`)
 
 ### Fixed
-- N/A
+- Resolved naming conflict between `Potential` class and `Potential` struct
+- Fixed GLFW window forward declaration issue in UIManager
 - Resolved missing `fftw3_threads` and `OpenGL::GL` targets by correcting package find and link targets
 - Flagged and documented ImGui backend include path error in kanban
 
 ### Removed
 - Placeholder sections in memory-bank files
-- N/A
 
 ## [1.0.0] - 2025-04-19
 
 ### Added
-- Initial release of Quantum Mechanics Simulation Phase 1 features:
+- Initial release of Quantum Mechanics Simulation Phase 1 features:
   - 2D TDSE solver using Split-Step Fourier Method
   - Wavefunction and potential abstractions (Free Space, Barrier, Harmonic)
   - OpenGL visualization engine with Dear ImGui controls
@@ -56,9 +69,12 @@
 
 ## Project Milestones
 
-### [Milestone Name] - YYYY-MM-DD
-- [Key achievement]
-- [Key achievement]
+### Sprint 1 (Core Simulation) - 2025-04-24
+- Implemented `Potential` interface and concrete implementations
+- Created `VisualizationEngine` for OpenGL rendering with GLSL shaders
+- Built `UIManager` with ImGui widgets for controls and parameter inputs
+- Wrote comprehensive unit tests for core modules
+- Enhanced `Wavefunction` class with initialization and normalization methods
 
 ### [Milestone Name] - YYYY-MM-DD
 - [Key achievement]

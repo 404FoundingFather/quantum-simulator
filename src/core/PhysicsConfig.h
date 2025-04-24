@@ -2,8 +2,8 @@
 #include <string>
 #include <vector>
 
-// Forward declarations for potential PhysicsConfig struct usage in other modules
-struct Potential {
+// Configuration structure for potential settings
+struct PotentialConfig {
     std::string type;
     std::vector<double> parameters;
 };
@@ -27,7 +27,7 @@ struct PhysicsConfig {
     int ny;
     double dt;
     double omega;
-    Potential potential;
+    PotentialConfig potential;
     Wavepacket wavepacket;
     Output output;
 };

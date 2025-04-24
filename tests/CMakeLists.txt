@@ -7,6 +7,8 @@ enable_testing()
 # Unit tests
 add_executable(unit_tests
     unit/WavefunctionTests.cpp
+    unit/PotentialTests.cpp
+    unit/SimulationEngineTests.cpp
 )
 target_link_libraries(unit_tests
     PRIVATE core config solver visualization ui GTest::gtest_main

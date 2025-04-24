@@ -2,6 +2,7 @@
 
 #include <complex>
 #include <vector>
+#include <cmath>
 
 /**
  * @class Wavefunction
@@ -64,6 +65,108 @@ public:
      * @return Const pointer to underlying complex data
      */
     const std::complex<double>* data() const { return m_data.data(); }
+    
+    /**
+     * @brief Initialize a Gaussian wavepacket
+     * @param x0 Center position in x direction
+     * @param y0 Center position in y direction
+     * @param sigmaX Width of Gaussian in x direction
+     * @param sigmaY Width of Gaussian in y direction
+     * @param kx Wavenumber in x direction (momentum)
+     * @param ky Wavenumber in y direction (momentum)
+     * @param lx Total length of domain in x direction
+     * @param ly Total length of domain in y direction
+     */
+    void initializeGaussian(double x0, double y0, double sigmaX, double sigmaY, 
+                           double kx, double ky, double lx, double ly) {
+        // Stub implementation - will be properly implemented later
+        double dx = lx / m_nx;
+        double dy = ly / m_ny;
+        
+        // Compute physical coordinates and initialize Gaussian
+        for (int i = 0; i < m_nx; ++i) {
+            double x = -lx/2 + i * dx;  // Physical x-coordinate
+            for (int j = 0; j < m_ny; ++j) {
+                double y = -ly/2 + j * dy;  // Physical y-coordinate
+                
+                // Gaussian envelope
+                double r2 = (x-x0)*(x-x0)/(sigmaX*sigmaX) + (y-y0)*(y-y0)/(sigmaY*sigmaY);
+                double envelope = std::exp(-r2/2);
+                
+                // Phase factor for momentum
+                std::complex<double> phase(0, kx*x + ky*y);
+                
+                // Set wavefunction value
+                (*this)(i, j) = envelope * std::exp(phase);
+            }
+        }
+        
+        // Normalize the wavefunction
+        normalize(lx, ly);
+    }
+    
+    /**
+     * @brief Normalize the wavefunction to have total probability = 1
+     * @param lx Total length of domain in x direction
+     * @param ly Total length of domain in y direction
+     */
+    void normalize(double lx, double ly) {
+        // Stub implementation - will be properly implemented later
+        double dx = lx / m_nx;
+        double dy = ly / m_ny;
+        
+        // Calculate total probability
+        double totalProb = 0.0;
+        for (int i = 0; i < m_nx; ++i) {
+            for (int j = 0; j < m_ny; ++j) {
+                totalProb += std::norm((*this)(i, j)) * dx * dy;
+            }
+        }
+        
+        // Normalize
+        double normFactor = 1.0 / std::sqrt(totalProb);
+        for (int i = 0; i < m_nx; ++i) {
+            for (int j = 0; j < m_ny; ++j) {
+                (*this)(i, j) *= normFactor;
+            }
+        }
+    }
+    
+    /**
+     * @brief Get probability density array for visualization
+     * @return Vector of float values representing probability density at each grid point
+     */
+    std::vector<float> getProbabilityDensity() const {
+        // Stub implementation - will be properly implemented later
+        std::vector<float> density(m_nx * m_ny);
+        for (int i = 0; i < m_nx; ++i) {
+            for (int j = 0; j < m_ny; ++j) {
+                density[i * m_ny + j] = static_cast<float>(std::norm((*this)(i, j)));
+            }
+        }
+        return density;
+    }
+    
+    /**
+     * @brief Calculate the total probability of the wavefunction
+     * @param lx Total length of domain in x direction
+     * @param ly Total length of domain in y direction
+     * @return The total probability (should be 1.0 for a normalized wavefunction)
+     */
+    double getTotalProbability(double lx, double ly) const {
+        // Stub implementation - will be properly implemented later
+        double dx = lx / m_nx;
+        double dy = ly / m_ny;
+        
+        double totalProb = 0.0;
+        for (int i = 0; i < m_nx; ++i) {
+            for (int j = 0; j < m_ny; ++j) {
+                totalProb += std::norm((*this)(i, j)) * dx * dy;
+            }
+        }
+        
+        return totalProb;
+    }
 
 private:
     int m_nx; ///< Number of grid points in x direction
