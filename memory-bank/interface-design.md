@@ -20,15 +20,16 @@ The interface-based design has been successfully implemented for all major compo
 
 ✅ **ISimulationEngine**: Fully implemented and functioning correctly  
 ✅ **IVisualizationEngine**: Fully implemented and functioning correctly  
-⚠️ **IUIManager**: Interface defined but implementation has stability issues  
+✅ **IUIManager**: Fully implemented and functioning correctly  
 ✅ **ServiceContainer**: Fully implemented for dependency injection  
 ✅ **ComponentFactory**: Fully implemented for component creation  
+✅ **DebugUtils**: Added debug utility system for comprehensive logging
 
 **Current Working Solution**:
-- The application successfully runs with `SimulationEngine` and `VisualizationEngine` implementations
-- A direct ImGui UI implementation is used as a temporary alternative to the `UIManager`
+- The application successfully runs with all major components fully integrated
+- Both the UIManager implementation and the direct ImGui UI integration are available
 - Core simulation features (time evolution, visualization) are complete and stable
-- Detailed debugging work in progress to resolve issues with `UIManager` implementation
+- Debug utility system provides runtime-configurable logging for diagnostics
 
 ## Core Interfaces
 
@@ -181,14 +182,21 @@ The `Wavefunction` class had inconsistent array indexing patterns that caused me
 
 ### 2. UIManager Integration
 
-The integration of the `UIManager` component presented significant challenges:
+The integration of the `UIManager` component initially presented significant challenges:
 
-- Segmentation faults occur during component initialization and callback registration
-- Lambda captures may be causing lifetime management issues
-- Resource initialization order may be creating dependencies on uninitialized components
-- Potential circular dependencies between components need resolution
+- Segmentation faults occurred during component initialization and callback registration
+- Lambda captures were causing lifetime management issues
+- Resource initialization order was creating dependencies on uninitialized components
+- Potential circular dependencies between components needed resolution
 
-**Temporary Solution**: We implemented a direct ImGui-based UI in main.cpp that provides the same functionality without using the `UIManager` component. This allows continued development while we resolve the `UIManager` issues.
+**Resolution**: We have successfully resolved these issues through:
+- Implementing proper null pointer validation throughout the UIManager
+- Using safe lambda capture patterns to ensure proper object lifecycle management
+- Adding comprehensive error handling with try-catch blocks
+- Including validation checks between initialization steps
+- Ensuring all interface methods are properly implemented
+
+Both the UIManager implementation and the direct ImGui-based UI are now available, giving the application flexibility in its user interface approach.
 
 ### 3. FFTW Resource Management
 
@@ -197,6 +205,40 @@ FFTW plan creation and resource management required careful handling:
 - Added proper error checking and resource cleanup
 - Ensured FFTW plans are created and destroyed correctly
 - Implemented safer initialization sequences with validation
+
+### 3. Debug Utility System
+
+To facilitate debugging and provide better diagnostic capabilities, we implemented a centralized debug utility system:
+
+```cpp
+class DebugUtils {
+public:
+    static DebugUtils& getInstance();
+    void setDebugEnabled(bool enabled);
+    bool isDebugEnabled() const;
+    void debug(const std::string& component, const std::string& message);
+    void debugWithTime(const std::string& component, const std::string& message);
+private:
+    DebugUtils();
+    bool m_debugEnabled;
+    std::mutex m_mutex;
+};
+```
+
+**Key Features**:
+- Singleton pattern for global access
+- Thread-safe logging with component categorization
+- Toggle-able debug output via command line or UI
+- Timestamp support for time-sensitive operations
+- Consistent formatting of debug messages
+
+**Integration with Application**:
+- Command line parameter (`--debug` or `-d`) to enable debug mode at startup
+- Runtime toggle in the UI to enable/disable debug output
+- Conversion of all existing debug prints to use the new system
+- Comprehensive logging throughout component lifecycles
+
+This debug utility system has proven invaluable for diagnosing and fixing the UIManager issues and will continue to serve as a key tool for future development and maintenance.
 
 ## Implementation Details
 
@@ -263,11 +305,13 @@ The interface-based design has already provided several benefits:
 
 To further improve the architecture:
 
-1. **Resolve UIManager Issues**: Complete the debugging tasks to ensure stable operation
-2. **Add Event System**: Implement an event-based communication system for loosely coupled components
-3. **Enhance Configuration Management**: Create a robust configuration system
-4. **Improve Error Handling**: Implement comprehensive error handling across all components
+1. **Add Event System**: Implement an event-based communication system for loosely coupled components
+2. **Enhance Configuration Management**: Create a robust configuration system
+3. **Improve Error Handling**: Build upon our recent debugging improvements with a formal error handling framework
+4. **Performance Optimization**: Implement performance monitoring and optimization techniques
+
+The Debug Utility System we've implemented lays groundwork for these improvements, particularly for monitoring performance and enhancing error handling capabilities.
 
 ## Conclusion
 
-The interface-based design implementation has significantly improved the architecture of the quantum simulation project, providing a solid foundation for ongoing development. While challenges remain with the `UIManager` component, the core simulation functionality is working correctly with the new architecture.
+The interface-based design implementation has significantly improved the architecture of the quantum simulation project, providing a solid foundation for ongoing development.

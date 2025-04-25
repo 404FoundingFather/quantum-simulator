@@ -1,5 +1,7 @@
 #include <iostream>
 #include <memory>
+#include <string>
+#include <vector>
 #define GLFW_INCLUDE_NONE  // prevent GLFW from loading OpenGL headers
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -8,6 +10,7 @@
 #include <imgui_impl_opengl3.h>
 
 #include "core/PhysicsConfig.h"
+#include "core/DebugUtils.h"
 #include "solver/ISimulationEngine.h"
 #include "solver/SimulationEngine.h"
 #include "visualization/IVisualizationEngine.h"
@@ -22,8 +25,36 @@ const char* GLSL_VERSION = "#version 330";
 // Simplified simulation state enum (matching UI Manager but without dependency)
 enum class SimState { Stopped, Running, Paused };
 
-int main() {
+// Function to print help information
+void printHelp(const char* programName) {
+    std::cout << "Usage: " << programName << " [options]" << std::endl;
+    std::cout << "Options:" << std::endl;
+    std::cout << "  --debug, -d     Enable debug output" << std::endl;
+    std::cout << "  --help, -h      Show this help message" << std::endl;
+}
+
+int main(int argc, char** argv) {
+    // Process command line arguments
+    bool debugEnabled = false;
+    
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--debug" || arg == "-d") {
+            debugEnabled = true;
+        } else if (arg == "--help" || arg == "-h") {
+            printHelp(argv[0]);
+            return 0;
+        }
+    }
+    
+    // Configure debug utilities
+    DebugUtils::getInstance().setDebugEnabled(debugEnabled);
+    
     std::cout << "Program starting..." << std::endl;
+    DEBUG_LOG("Main", "Quantum simulator application initializing");
+    if (debugEnabled) {
+        std::cout << "Debug mode enabled" << std::endl;
+    }
     
     // Set GLFW error callback
     glfwSetErrorCallback([](int error, const char* description) {
@@ -31,18 +62,21 @@ int main() {
     });
     
     // Initialize GLFW
-    std::cout << "Initializing GLFW..." << std::endl;
+    DEBUG_LOG("GLFW", "Initializing GLFW library");
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW" << std::endl;
         return -1;
     }
     
     // Set OpenGL context version
+    DEBUG_LOG("OpenGL", "Setting OpenGL context version to 3.3 core profile");
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     
     // Create window
+    DEBUG_LOG("GLFW", "Creating window: " + std::string(WINDOW_TITLE) + 
+              " (" + std::to_string(WINDOW_WIDTH) + "x" + std::to_string(WINDOW_HEIGHT) + ")");
     GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, nullptr, nullptr);
     if (!window) {
         std::cerr << "Failed to create GLFW window" << std::endl;
@@ -51,6 +85,7 @@ int main() {
     }
     
     // Initialize OpenGL context
+    DEBUG_LOG("OpenGL", "Making OpenGL context current and initializing GLAD");
     glfwMakeContextCurrent(window);
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cerr << "Failed to initialize GLAD" << std::endl;
@@ -60,22 +95,22 @@ int main() {
     }
     
     // Initialize ImGui
-    std::cout << "Creating ImGui context..." << std::endl;
+    DEBUG_LOG("ImGui", "Creating ImGui context");
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable keyboard controls
     
-    std::cout << "Setting ImGui style..." << std::endl;
+    DEBUG_LOG("ImGui", "Setting ImGui style to dark theme");
     ImGui::StyleColorsDark();
     
-    std::cout << "Initializing ImGui GLFW implementation..." << std::endl;
+    DEBUG_LOG("ImGui", "Initializing ImGui GLFW and OpenGL3 implementations");
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    std::cout << "Initializing ImGui OpenGL3 implementation..." << std::endl;
     ImGui_ImplOpenGL3_Init(GLSL_VERSION);
     
     try {
         // Initialize physics simulation
         std::cout << "Initializing simulation components..." << std::endl;
+        DEBUG_LOG("Main", "Beginning simulation component initialization");
         
         // Create and configure physics
         PhysicsConfig config;
@@ -92,20 +127,26 @@ int main() {
         config.wavepacket.kx = 5.0;
         config.wavepacket.ky = 0.0;
         
+        DEBUG_LOG_TIME("Config", "Initialized physics configuration: nx=" + std::to_string(config.nx) + 
+                      ", ny=" + std::to_string(config.ny) + ", dt=" + std::to_string(config.dt));
+        
         // Create components
-        std::cout << "Creating simulation engine..." << std::endl;
+        DEBUG_LOG("Simulation", "Creating simulation engine with configured physics");
         auto simulationEngine = std::make_shared<SimulationEngine>(config);
         
-        std::cout << "Creating visualization engine..." << std::endl;
+        DEBUG_LOG("Visualization", "Creating visualization engine with dimensions " + 
+                 std::to_string(config.nx) + "x" + std::to_string(config.ny));
         auto visualizationEngine = std::make_shared<VisualizationEngine>(config.nx, config.ny);
         
         // Initialize visualization engine
-        std::cout << "Initializing visualization engine..." << std::endl;
+        DEBUG_LOG("Visualization", "Initializing visualization engine with OpenGL");
         if (!visualizationEngine->initialize(window)) {
+            DEBUG_LOG("Visualization", "Failed to initialize visualization engine");
             throw std::runtime_error("Failed to initialize visualization engine");
         }
         
         std::cout << "Entering main loop..." << std::endl;
+        DEBUG_LOG_TIME("Main", "Starting main simulation loop");
         // Main loop
         int frameCount = 0;
         double lastTime = glfwGetTime();
@@ -122,7 +163,7 @@ int main() {
                 double fps = frameCount / deltaTime;
                 frameCount = 0;
                 lastTime = currentTime;
-                std::cout << "FPS: " << fps << std::endl;
+                DEBUG_LOG("Performance", "FPS: " + std::to_string(fps));
             }
             
             // Poll for and process events
@@ -143,12 +184,15 @@ int main() {
             
             if (ImGui::Button(simState == SimState::Running ? "Stop" : "Start")) {
                 simState = (simState == SimState::Running) ? SimState::Stopped : SimState::Running;
+                DEBUG_LOG_TIME("Simulation", simState == SimState::Running ? 
+                    "Simulation started" : "Simulation stopped");
             }
             
             ImGui::SameLine();
             
             if (ImGui::Button("Reset")) {
                 simulationEngine->reset();
+                DEBUG_LOG("Simulation", "Simulation reset");
             }
             
             ImGui::Text("Simulation time: %.3f", simulationEngine->getCurrentTime());
@@ -156,6 +200,17 @@ int main() {
             // Display total probability as a check
             double totalProb = simulationEngine->getTotalProbability();
             ImGui::Text("Total probability: %.6f", totalProb);
+            
+            DEBUG_IF(totalProb < 0.99 || totalProb > 1.01) {
+                DEBUG_LOG_TIME("Simulation", "Warning: Probability not conserved: " + std::to_string(totalProb));
+            }
+            
+            // Add runtime debug toggle
+            bool currentDebugEnabled = DebugUtils::getInstance().isDebugEnabled();
+            if (ImGui::Checkbox("Debug Mode", &currentDebugEnabled)) {
+                DebugUtils::getInstance().setDebugEnabled(currentDebugEnabled);
+                DEBUG_LOG("Main", "Debug mode " + std::string(currentDebugEnabled ? "enabled" : "disabled"));
+            }
             
             // Visualization controls
             ImGui::Separator();
@@ -198,12 +253,18 @@ int main() {
     
     // Cleanup
     std::cout << "Cleaning up..." << std::endl;
+    DEBUG_LOG("Main", "Performing application cleanup");
+    
+    DEBUG_LOG("ImGui", "Shutting down ImGui subsystems");
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+    
+    DEBUG_LOG("GLFW", "Destroying window and terminating GLFW");
     glfwDestroyWindow(window);
     glfwTerminate();
     
+    DEBUG_LOG_TIME("Main", "Application shutdown complete");
     std::cout << "Program completed successfully." << std::endl;
     return 0;
 }

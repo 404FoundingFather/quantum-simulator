@@ -5,8 +5,10 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <iostream> // Added for std::cerr and std::endl
 #include "IUIManager.h"
 #include "../core/PhysicsConfig.h"
+#include "../core/Potential.h" // Added for Potential class
 
 // Forward declaration for GLFW
 struct GLFWwindow;
@@ -37,10 +39,45 @@ public:
     SimulationState getSimulationState() const override { return m_simState; }
     const PhysicsConfig& getConfig() const override { return m_config; }
     
-    // Event callbacks
-    void registerStartCallback(std::function<void()> callback) override { m_startCallback = callback; }
-    void registerStopCallback(std::function<void()> callback) override { m_stopCallback = callback; }
-    void registerResetCallback(std::function<void()> callback) override { m_resetCallback = callback; }
+    // Event callbacks - safely manage lambda captures and handle nullptr cases
+    void registerStartCallback(std::function<void()> callback) override { 
+        if (callback) {
+            // Create a copy of the callback in a safe way
+            m_startCallback = [callback]() {
+                try {
+                    callback();
+                } catch (const std::exception& e) {
+                    std::cerr << "Error in start callback: " << e.what() << std::endl;
+                }
+            };
+        }
+    }
+
+    void registerStopCallback(std::function<void()> callback) override { 
+        if (callback) {
+            // Create a copy of the callback in a safe way
+            m_stopCallback = [callback]() {
+                try {
+                    callback();
+                } catch (const std::exception& e) {
+                    std::cerr << "Error in stop callback: " << e.what() << std::endl;
+                }
+            };
+        }
+    }
+
+    void registerResetCallback(std::function<void()> callback) override { 
+        if (callback) {
+            // Create a copy of the callback in a safe way
+            m_resetCallback = [callback]() {
+                try {
+                    callback();
+                } catch (const std::exception& e) {
+                    std::cerr << "Error in reset callback: " << e.what() << std::endl;
+                }
+            };
+        }
+    }
     
     // Update simulation stats (FPS, simulation time)
     void updateStats(double currentTime, double fps) override;
@@ -52,6 +89,9 @@ private:
     void renderPotentialSettings();
     void renderWavepacketSettings();
     void renderDiagnostics();
+    
+    // Helper method to create potential objects
+    std::unique_ptr<Potential> createPotentialFromConfig(const PotentialConfig& config);
     
     // ImGui state
     bool m_initialized = false;

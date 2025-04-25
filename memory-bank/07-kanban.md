@@ -43,31 +43,6 @@
 
 ## In Progress
 
-### UIManager Debugging [P1]
-- **Lambda Captures in UIManager** — Eric Hammond
-  - Check how the lambdas in UIManager are capturing and accessing shared components
-  - Verify that shared pointers are properly copied in lambdas, not captured by reference
-  - Ensure that lambda captures don't create circular references
-  - Validate lifetime management of captured resources
-
-- **Initialization Order in UIManager** — Eric Hammond
-  - Ensure the UIManager initializes its internal state fully before any other methods are called
-  - Add validation checks between initialization steps
-  - Verify that component dependencies are properly initialized
-  - Implement defensive error handling for uninitialized state access
-
-- **Interface Implementation Verification** — Eric Hammond
-  - Verify that all interfaces are implemented correctly and methods match the expected signatures
-  - Check for any missing or incorrectly implemented interface methods
-  - Ensure consistent behavior between different implementation methods
-  - Add interface compliance validation tests
-
-- **Memory Management Analysis** — Eric Hammond
-  - Look for potential issues with shared pointer ownership and object lifetimes
-  - Identify and resolve any circular dependencies between components
-  - Check for dangling references or use-after-free issues
-  - Review resource acquisition and release sequences
-
 ### Sprint 2 Tasks (Architectural Improvements) [P1]
 - **Event System for Component Communication** — Not started
   - Design and implement central EventBus
@@ -109,6 +84,24 @@
 - Updated interface design documentation — Eric Hammond, awaiting peer review
 
 ## Completed
+- **Debug Utility System Implementation** — Eric Hammond
+  - Create DebugUtils singleton class for centralized debug management
+  - Implement thread-safe debug logging with component categorization
+  - Add timestamp capability for time-sensitive debug messages
+  - Create command-line argument parsing for debug mode enablement
+  - Add runtime debug mode toggle via UI checkbox
+  - Convert existing debug prints to use the new system
+  - Add comprehensive debug logging to UIManager to track component lifecycle
+
+- **UIManager Debugging and Fixes** — Eric Hammond
+  - Fixed Lambda Captures in UIManager by implementing proper copy semantics
+  - Resolved Initialization Order issues with validation checks
+  - Added proper null pointer validation throughout the UIManager
+  - Implemented exception handling for all external calls
+  - Fixed Interface Implementation to ensure all methods are correctly implemented
+  - Added additional debugging information for runtime diagnosis
+  - Verified resource lifetime and exception safety
+
 - **Interface-Based Design Implementation** — Eric Hammond
   - Define explicit interfaces (ISimulationEngine, IVisualizationEngine, IUIManager)
   - Refactor existing implementations to inherit from interfaces
@@ -138,7 +131,6 @@
 
 ## Blocked/Issues
 - ⚠️ ImGui theme integration: need finalized color scheme and assets
-- ⚠️ UIManager: segmentation fault needs to be resolved — Eric Hammond working on detailed debug analysis
 
 ## Notes
 - Priority levels: [P1] High, [P2] Medium, [P3] Low
@@ -147,6 +139,8 @@
 - Sprint 3 will focus on component integration and visualization
 
 ## Recent Activity
+- 2025-04-25: Implemented debug utility system with command-line and runtime toggling
+- 2025-04-25: Fixed UIManager segmentation fault issues with proper null checks and exception handling
 - 2025-04-25: Created standalone UI solution using direct ImGui integration as an alternative to UIManager
 - 2025-04-25: Added detailed UIManager debugging tasks to kanban
 - 2025-04-25: Fixed array indexing issues in Wavefunction class
@@ -160,7 +154,7 @@
 - **Current Sprint:** Sprint 2 (Architectural Improvements)
 - **Timeline:** 2025-04-25 - 2025-05-15
 - **Planned Story Points:** 30
-- **Completed Story Points:** 12
+- **Completed Story Points:** 18
 - **Sprint Goal:** Enhance architecture to create an exceptional framework with extensibility, maintainability, and performance
 
 - **Next Sprint:** Sprint 3 (Component Integration & Visualization)

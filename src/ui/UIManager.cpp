@@ -6,8 +6,10 @@
 #include <algorithm>
 #include <GLFW/glfw3.h>
 #include "../solver/ISimulationEngine.h"
+#include "../core/DebugUtils.h"
 
 UIManager::UIManager() {
+    DEBUG_LOG("UIManager", "Constructing UIManager");
     // Initialize default config values
     m_config.nx = 512;
     m_config.ny = 512;
@@ -40,6 +42,7 @@ UIManager::UIManager() {
     m_uiState.waveSigmaY = static_cast<float>(m_config.wavepacket.sigmaY);
     m_uiState.waveKx = static_cast<float>(m_config.wavepacket.kx);
     m_uiState.waveKy = static_cast<float>(m_config.wavepacket.ky);
+    DEBUG_LOG("UIManager", "UIManager construction complete");
 }
 
 UIManager::~UIManager() {
@@ -47,6 +50,13 @@ UIManager::~UIManager() {
 }
 
 bool UIManager::initialize(GLFWwindow* window, const char* glslVersion) {
+    DEBUG_LOG("UIManager", "Initializing UIManager with glslVersion: " + std::string(glslVersion ? glslVersion : "null"));
+    
+    if (!window) {
+        DEBUG_LOG("UIManager", "Initialize failed: window is null");
+        return false;
+    }
+    
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -56,18 +66,25 @@ bool UIManager::initialize(GLFWwindow* window, const char* glslVersion) {
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
     
+    DEBUG_LOG("UIManager", "Initializing ImGui backends");
     // Setup Platform/Renderer backends
     if (!ImGui_ImplGlfw_InitForOpenGL(window, true) ||
         !ImGui_ImplOpenGL3_Init(glslVersion)) {
         std::cerr << "Failed to initialize ImGui backends" << std::endl;
+        DEBUG_LOG("UIManager", "Failed to initialize ImGui backends");
         return false;
     }
     
     m_initialized = true;
+    DEBUG_LOG("UIManager", "UIManager initialization successful");
     return true;
 }
 
 void UIManager::setSimulationEngine(std::shared_ptr<ISimulationEngine> engine) {
+    if (!engine) {
+        std::cerr << "Warning: Attempted to set null simulation engine" << std::endl;
+        return;
+    }
     m_engine = engine;
 }
 
@@ -250,12 +267,28 @@ void UIManager::renderPotentialSettings() {
         if (m_engine) {
             PhysicsConfig updatedConfig = m_config;
             updateConfig(updatedConfig);
-            // We would call the engine's method to update the potential
-            // m_engine->updatePotential(updatedConfig.potential);
+            
+            try {
+                // Update the engine with the new configuration
+                m_engine->updateConfig(updatedConfig);
+                
+                // Uncommented the previously commented-out method call
+                // and use a safer approach by using the interface method
+                m_engine->setPotential(createPotentialFromConfig(updatedConfig.potential));
+            }
+            catch (const std::exception& e) {
+                std::cerr << "Error updating potential: " << e.what() << std::endl;
+            }
         }
     }
     
     ImGui::Separator();
+}
+
+// Helper method to create a potential object from configuration
+std::unique_ptr<Potential> UIManager::createPotentialFromConfig(const PotentialConfig& config) {
+    // Use the static factory method from Potential class
+    return Potential::create(config.type, config.parameters);
 }
 
 void UIManager::renderWavepacketSettings() {
@@ -268,11 +301,29 @@ void UIManager::renderWavepacketSettings() {
     ImGui::SliderFloat("X Momentum (kx)", &m_uiState.waveKx, -10.0f, 10.0f, "%.1f");
     ImGui::SliderFloat("Y Momentum (ky)", &m_uiState.waveKy, -10.0f, 10.0f, "%.1f");
     
-    if (ImGui::Button("Apply Wavepacket Changes") && m_engine) {
-        PhysicsConfig updatedConfig = m_config;
-        updateConfig(updatedConfig);
-        // We would call the engine's method to reinitialize the wavefunction
-        // m_engine->reinitializeWavefunction(updatedConfig.wavepacket);
+    if (ImGui::Button("Apply Wavepacket Changes")) {
+        if (m_engine) {
+            try {
+                PhysicsConfig updatedConfig = m_config;
+                updateConfig(updatedConfig);
+                
+                // Reset the engine with the new wavepacket configuration
+                m_engine->reset();
+                
+                // Log the update
+                std::cout << "Updated wavepacket configuration: "
+                          << "x0=" << updatedConfig.wavepacket.x0 
+                          << ", y0=" << updatedConfig.wavepacket.y0
+                          << ", sigmaX=" << updatedConfig.wavepacket.sigmaX
+                          << ", sigmaY=" << updatedConfig.wavepacket.sigmaY
+                          << ", kx=" << updatedConfig.wavepacket.kx
+                          << ", ky=" << updatedConfig.wavepacket.ky
+                          << std::endl;
+            }
+            catch (const std::exception& e) {
+                std::cerr << "Error updating wavepacket configuration: " << e.what() << std::endl;
+            }
+        }
     }
     
     ImGui::Separator();
@@ -281,15 +332,32 @@ void UIManager::renderWavepacketSettings() {
 void UIManager::renderDiagnostics() {
     ImGui::Text("Diagnostics");
     
-    // Placeholder for total probability (would be retrieved from simulation engine)
-    float totalProbability = 1.0f; // Replace with actual value from engine
-    ImGui::Text("Total Probability: %.6f", totalProbability);
+    // Get actual values from the simulation engine with proper error handling
+    float totalProbability = 1.0f; // Default fallback value
+    float totalEnergy = 0.0f; // Default fallback value
     
-    // Placeholder for energy (would be retrieved from simulation engine)
-    float totalEnergy = 0.0f; // Replace with actual value from engine
+    if (m_engine) {
+        try {
+            // Get total probability from the engine
+            totalProbability = static_cast<float>(m_engine->getTotalProbability());
+            
+            // Note: Energy calculation is not currently exposed in the interface
+            // To be implemented when the interface provides this functionality
+            // totalEnergy = static_cast<float>(m_engine->getTotalEnergy());
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Error retrieving simulation diagnostics: " << e.what() << std::endl;
+        }
+    }
+    
+    ImGui::Text("Total Probability: %.6f", totalProbability);
     ImGui::Text("Total Energy: %.6f", totalEnergy);
     
-    // Future extension: Add plots for probability and energy over time
+    // Check probability conservation (should be close to 1.0)
+    if (std::abs(totalProbability - 1.0f) > 0.01f) {
+        ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), 
+            "Warning: Probability not conserved (%.6f)", totalProbability);
+    }
     
     ImGui::Separator();
 }
