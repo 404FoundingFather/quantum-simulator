@@ -2,23 +2,28 @@
 
 #include <string>
 #include <vector>
+#include "IVisualizationEngine.h"
 
 // Forward declarations to avoid including headers
 class GLFWwindow;
 typedef unsigned int GLuint;
 
-class VisualizationEngine {
+class VisualizationEngine : public IVisualizationEngine {
 public:
     VisualizationEngine(int width, int height);
-    ~VisualizationEngine();
+    ~VisualizationEngine() override;
 
-    bool initialize(GLFWwindow* window);
-    void render(const std::vector<float>& probabilityDensity);
-    void cleanup();
+    bool initialize(GLFWwindow* window) override;
+    void render(const std::vector<float>& probabilityDensity) override;
+    void cleanup() override;
     
     // Getters
-    int getWidth() const { return m_width; }
-    int getHeight() const { return m_height; }
+    int getWidth() const override { return m_width; }
+    int getHeight() const override { return m_height; }
+    
+    // Interface implementation
+    void setColormap(int colormapType) override;
+    void setScale(float scale) override;
 
 private:
     // Shader utility methods
@@ -42,4 +47,6 @@ private:
     
     // State
     bool m_initialized = false;
+    int m_colormapType = 0;
+    float m_scale = 1.0f;
 };

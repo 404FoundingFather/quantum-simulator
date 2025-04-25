@@ -13,6 +13,7 @@ SimulationEngine::SimulationEngine(const PhysicsConfig& config)
       m_dt(config.dt),
       m_currentTime(0.0),
       m_wavefunction(config.nx, config.ny),
+      m_wavepacket(config.wavepacket),  // Store the wavepacket configuration
       m_kx(config.nx),
       m_ky(config.ny)
 {
@@ -55,15 +56,22 @@ SimulationEngine::~SimulationEngine() {
 
 // Initialize wavefunction based on current configuration
 void SimulationEngine::initializeWavefunction() {
-    // Create a Gaussian wavepacket based on the configuration
-    const auto& wp = m_potential->getType() == "FreeSpace" ? 
-                     PhysicsConfig().wavepacket : PhysicsConfig().wavepacket;
+    // Debug output
+    std::cout << "Initializing wavefunction. Potential type: " << (m_potential ? m_potential->getType() : "NULL") << std::endl;
+    
+    // Use stored wavepacket parameters
+    std::cout << "Using wavepacket parameters: x0=" << m_wavepacket.x0 
+              << ", y0=" << m_wavepacket.y0 
+              << ", sigmaX=" << m_wavepacket.sigmaX 
+              << ", sigmaY=" << m_wavepacket.sigmaY
+              << ", kx=" << m_wavepacket.kx
+              << ", ky=" << m_wavepacket.ky << std::endl;
     
     m_wavefunction.initializeGaussian(
-        wp.x0, wp.y0,           // Center position
-        wp.sigmaX, wp.sigmaY,   // Width in x and y directions
-        wp.kx, wp.ky,           // Momentum in x and y directions
-        m_lx, m_ly              // Domain size
+        m_wavepacket.x0, m_wavepacket.y0,         // Center position
+        m_wavepacket.sigmaX, m_wavepacket.sigmaY, // Width in x and y directions
+        m_wavepacket.kx, m_wavepacket.ky,         // Momentum in x and y directions
+        m_lx, m_ly                                // Domain size
     );
     
     m_currentTime = 0.0;
@@ -71,23 +79,44 @@ void SimulationEngine::initializeWavefunction() {
 
 // Initialize FFTW plans
 void SimulationEngine::initializeFFTWPlans() {
-    // Create plans for forward and backward FFTs
-    m_forwardPlan = fftw_plan_dft_2d(
-        m_nx, m_ny,
-        reinterpret_cast<fftw_complex*>(m_wavefunction.data()),
-        reinterpret_cast<fftw_complex*>(m_wavefunction.data()),
-        FFTW_FORWARD, FFTW_MEASURE
-    );
+    // Debug output and safety checks
+    std::cout << "Initializing FFTW plans with grid size: " << m_nx << " x " << m_ny << std::endl;
     
-    m_backwardPlan = fftw_plan_dft_2d(
-        m_nx, m_ny,
-        reinterpret_cast<fftw_complex*>(m_wavefunction.data()),
-        reinterpret_cast<fftw_complex*>(m_wavefunction.data()),
-        FFTW_BACKWARD, FFTW_MEASURE
-    );
+    if (m_wavefunction.data() == nullptr) {
+        std::cerr << "ERROR: Wavefunction data is null!" << std::endl;
+        throw std::runtime_error("Null wavefunction data in initializeFFTWPlans");
+    }
     
-    if (!m_forwardPlan || !m_backwardPlan) {
-        throw std::runtime_error("Failed to create FFTW plans");
+    std::cout << "Wavefunction data address: " << m_wavefunction.data() << std::endl;
+    
+    try {
+        // Create plans for forward and backward FFTs
+        std::cout << "Creating forward FFTW plan..." << std::endl;
+        m_forwardPlan = fftw_plan_dft_2d(
+            m_nx, m_ny,
+            reinterpret_cast<fftw_complex*>(m_wavefunction.data()),
+            reinterpret_cast<fftw_complex*>(m_wavefunction.data()),
+            FFTW_FORWARD, FFTW_MEASURE
+        );
+        
+        std::cout << "Creating backward FFTW plan..." << std::endl;
+        m_backwardPlan = fftw_plan_dft_2d(
+            m_nx, m_ny,
+            reinterpret_cast<fftw_complex*>(m_wavefunction.data()),
+            reinterpret_cast<fftw_complex*>(m_wavefunction.data()),
+            FFTW_BACKWARD, FFTW_MEASURE
+        );
+        
+        if (!m_forwardPlan || !m_backwardPlan) {
+            std::cerr << "Failed to create FFTW plans!" << std::endl;
+            throw std::runtime_error("Failed to create FFTW plans");
+        }
+        
+        std::cout << "FFTW plans created successfully." << std::endl;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Exception during FFTW plan creation: " << e.what() << std::endl;
+        throw;
     }
 }
 
@@ -196,6 +225,7 @@ void SimulationEngine::updateConfig(const PhysicsConfig& config) {
     m_nx = config.nx;
     m_ny = config.ny;
     m_dt = config.dt;
+    m_wavepacket = config.wavepacket;  // Update wavepacket parameters
     
     // Calculate grid spacing
     m_dx = m_lx / m_nx;
@@ -243,4 +273,20 @@ void SimulationEngine::setPotential(std::unique_ptr<Potential> potential) {
 // Get the total probability
 double SimulationEngine::getTotalProbability() const {
     return m_wavefunction.getTotalProbability(m_lx, m_ly);
+}
+
+// Get probability density for visualization
+std::vector<float> SimulationEngine::getProbabilityDensity() const {
+    std::vector<float> densityData(m_nx * m_ny);
+    
+    // Calculate probability density |ψ|² at each grid point
+    for (int i = 0; i < m_nx; ++i) {
+        for (int j = 0; j < m_ny; ++j) {
+            const std::complex<double>& psi = m_wavefunction(i, j);
+            double probability = std::norm(psi); // |ψ|² = ψ*ψ
+            densityData[j * m_nx + i] = static_cast<float>(probability);
+        }
+    }
+    
+    return densityData;
 }

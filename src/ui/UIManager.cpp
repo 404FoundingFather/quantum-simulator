@@ -5,7 +5,7 @@
 #include <iostream>
 #include <algorithm>
 #include <GLFW/glfw3.h>
-#include "../solver/SimulationEngine.h"
+#include "../solver/ISimulationEngine.h"
 
 UIManager::UIManager() {
     // Initialize default config values
@@ -67,7 +67,7 @@ bool UIManager::initialize(GLFWwindow* window, const char* glslVersion) {
     return true;
 }
 
-void UIManager::setSimulationEngine(std::shared_ptr<SimulationEngine> engine) {
+void UIManager::setSimulationEngine(std::shared_ptr<ISimulationEngine> engine) {
     m_engine = engine;
 }
 

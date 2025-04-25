@@ -5,50 +5,45 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "IUIManager.h"
 #include "../core/PhysicsConfig.h"
 
 // Forward declaration for GLFW
 struct GLFWwindow;
 
 // Forward declarations
-class SimulationEngine;
+class ISimulationEngine;
 
-enum class SimulationState {
-    Stopped,
-    Running,
-    Paused
-};
-
-class UIManager {
+class UIManager : public IUIManager {
 public:
     UIManager();
-    ~UIManager();
+    ~UIManager() override;
     
     // Initialize the UI components
-    bool initialize(GLFWwindow* window, const char* glslVersion);
+    bool initialize(GLFWwindow* window, const char* glslVersion) override;
     
     // Set simulation engine reference
-    void setSimulationEngine(std::shared_ptr<SimulationEngine> engine);
+    void setSimulationEngine(std::shared_ptr<ISimulationEngine> engine) override;
     
     // Update config with current values
-    void updateConfig(PhysicsConfig& config);
+    void updateConfig(PhysicsConfig& config) override;
     
     // Process inputs and render UI elements
-    void processInput();
-    void render();
-    void cleanup();
+    void processInput() override;
+    void render() override;
+    void cleanup() override;
     
     // Getters
-    SimulationState getSimulationState() const { return m_simState; }
-    const PhysicsConfig& getConfig() const { return m_config; }
+    SimulationState getSimulationState() const override { return m_simState; }
+    const PhysicsConfig& getConfig() const override { return m_config; }
     
     // Event callbacks
-    void registerStartCallback(std::function<void()> callback) { m_startCallback = callback; }
-    void registerStopCallback(std::function<void()> callback) { m_stopCallback = callback; }
-    void registerResetCallback(std::function<void()> callback) { m_resetCallback = callback; }
+    void registerStartCallback(std::function<void()> callback) override { m_startCallback = callback; }
+    void registerStopCallback(std::function<void()> callback) override { m_stopCallback = callback; }
+    void registerResetCallback(std::function<void()> callback) override { m_resetCallback = callback; }
     
     // Update simulation stats (FPS, simulation time)
-    void updateStats(double currentTime, double fps);
+    void updateStats(double currentTime, double fps) override;
 
 private:
     // Helper methods to render different UI sections
@@ -93,7 +88,7 @@ private:
     std::function<void()> m_resetCallback;
     
     // Engine reference
-    std::shared_ptr<SimulationEngine> m_engine;
+    std::shared_ptr<ISimulationEngine> m_engine;
     
     // Constants
     const char* POTENTIAL_TYPES[3] = { "Free Space", "Square Barrier/Well", "Harmonic Oscillator" };

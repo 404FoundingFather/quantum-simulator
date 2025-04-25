@@ -41,7 +41,7 @@ public:
      * @return Reference to complex value at position (i,j)
      */
     std::complex<double>& operator()(int i, int j) {
-        return m_data[i * m_ny + j];
+        return m_data[j * m_nx + i];  // Correct row-major indexing
     }
     
     /**
@@ -51,7 +51,7 @@ public:
      * @return Const reference to complex value at position (i,j)
      */
     const std::complex<double>& operator()(int i, int j) const {
-        return m_data[i * m_ny + j];
+        return m_data[j * m_nx + i];  // Correct row-major indexing
     }
     
     /**
@@ -141,7 +141,7 @@ public:
         std::vector<float> density(m_nx * m_ny);
         for (int i = 0; i < m_nx; ++i) {
             for (int j = 0; j < m_ny; ++j) {
-                density[i * m_ny + j] = static_cast<float>(std::norm((*this)(i, j)));
+                density[j * m_nx + i] = static_cast<float>(std::norm((*this)(i, j)));
             }
         }
         return density;

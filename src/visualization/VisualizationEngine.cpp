@@ -21,6 +21,7 @@ const std::string VisualizationEngine::s_fragmentShaderSource = R"glsl(
 out vec4 FragColor;
 in vec2 TexCoord;
 uniform sampler2D densityTexture;
+uniform int colormapType;
 
 // Viridis-inspired colormap function
 vec3 applyColormap(float value) {
@@ -247,4 +248,32 @@ GLuint VisualizationEngine::createShaderProgram(const std::string& vertexShaderS
     glDeleteShader(fragmentShader);
     
     return program;
+}
+
+// Implementation for setColormap
+void VisualizationEngine::setColormap(int colormapType) {
+    m_colormapType = colormapType;
+    
+    // Update uniform value in shader if initialized
+    if (m_initialized && m_shaderProgram) {
+        glUseProgram(m_shaderProgram);
+        GLint colormapLocation = glGetUniformLocation(m_shaderProgram, "u_colormap");
+        if (colormapLocation >= 0) {
+            glUniform1i(colormapLocation, m_colormapType);
+        }
+    }
+}
+
+// Implementation for setScale
+void VisualizationEngine::setScale(float scale) {
+    m_scale = scale;
+    
+    // Update uniform value in shader if initialized
+    if (m_initialized && m_shaderProgram) {
+        glUseProgram(m_shaderProgram);
+        GLint scaleLocation = glGetUniformLocation(m_shaderProgram, "u_scale");
+        if (scaleLocation >= 0) {
+            glUniform1f(scaleLocation, m_scale);
+        }
+    }
 }

@@ -1,10 +1,20 @@
 # Changelog
 
-**Last Updated:** April 24, 2025
+**Last Updated:** April 25, 2025
 
 ## Unreleased
 
 ### Added
+- Implemented interface-based design with clear contracts:
+  - `ISimulationEngine`: Defines simulation evolution methods
+  - `IVisualizationEngine`: For rendering quantum state data
+  - `IUIManager`: For managing the user interface
+- Created `ServiceContainer` for dependency injection
+- Added `ComponentFactory` for component instantiation
+- Comprehensive debug tracing infrastructure for component initialization
+- Improved error handling for OpenGL and FFTW3 operations
+- Fallback rendering mode for improved stability in various environments
+- Direct ImGui integration for stable UI when not using UIManager
 - Comprehensive unit tests for core modules (Wavefunction, Potential, SimulationEngine)
 - `Potential` abstract base class and concrete implementations:
   - `FreeSpacePotential`: Zero potential everywhere
@@ -32,22 +42,27 @@
 - Windows, Linux, macOS setup instructions in README and environment docs
 
 ### Changed
-- Renamed `Potential` struct to `PotentialConfig` in PhysicsConfig.h to avoid naming conflicts
-- Updated `UIManager` to support all planned potential types and parameters
-- Completed initial `VisualizationEngine` implementation with proper GLSL shader setup
-- Updated technical context, system patterns, and UI design documents
-- Updated `README.md`, `02-techContext.md`, and `09-environment.md` with platform-specific install steps
-- Updated CMake files to link correct imported targets (`FFTW3::fftw3`, `OpenGL::GL`, `imgui::imgui`, `glad::glad`)
+- Refactored `SimulationEngine` to implement the `ISimulationEngine` interface
+- Refactored `VisualizationEngine` to implement the `IVisualizationEngine` interface  
+- Refactored `UIManager` to implement the `IUIManager` interface
+- Updated array indexing in `Wavefunction` class to use correct row-major ordering (`j * m_nx + i`)
+- Enhanced main.cpp to use interfaces rather than concrete implementations
+- Implemented incremental component initialization and validation for improved stability
+- Enhanced error handling with detailed output for debugging
 - **Enhanced `SimulationEngine` with reliable time evolution capabilities:**
   - Implemented robust wave function initialization
   - Added proper probability conservation checks
   - Ensured correct handling of different grid sizes and time steps
 
 ### Fixed
-- Resolved naming conflict between `Potential` class and `Potential` struct
-- Fixed GLFW window forward declaration issue in UIManager
-- Resolved missing `fftw3_threads` and `OpenGL::GL` targets by correcting package find and link targets
-- Flagged and documented ImGui backend include path error in kanban
+- Resolved segmentation fault in application startup sequence
+- Fixed array indexing inconsistencies in `Wavefunction.h`
+- Fixed `getProbabilityDensity()` methods to use consistent indexing patterns
+- Stabilized FFTW plan creation and execution
+- Added proper cleanup for OpenGL and FFTW resources
+- Added component initialization validation to prevent using uninitialized components
+- Resolved potential memory management issues with shared pointers
+- Fixed lambda capture issues in callback registration
 - **Fixed OpenMP compilation issues in `SimulationEngine` by making it work without explicit OpenMP dependencies**
 
 ### Removed
@@ -87,9 +102,11 @@
 - Wrote comprehensive unit tests for core modules
 - Enhanced `Wavefunction` class with initialization and normalization methods
 
-### [Milestone Name] - YYYY-MM-DD
-- [Key achievement]
-- [Key achievement]
+### Sprint 2 (Architectural Improvements) - 2025-04-25
+- Implemented interface-based design with ISimulationEngine, IVisualizationEngine, and IUIManager
+- Created ServiceContainer for dependency injection and ComponentFactory for component creation
+- Fixed array indexing issues and segmentation faults in simulation components
+- Enhanced main application with better error handling and diagnostics
 
 ## Version Numbering Convention
 

@@ -123,16 +123,16 @@ TEST(WavefunctionTest, DataAccess) {
     const std::complex<double>* data_const = wf.data();
     std::complex<double>* data_mutable = wf.data();
     
-    // Verify data access using pointers
+    // Verify data access using pointers - use j * nx + i to match the internal storage
     for (int i = 0; i < nx; ++i) {
         for (int j = 0; j < ny; ++j) {
-            EXPECT_EQ(data_const[i * ny + j], std::complex<double>(i, j));
-            EXPECT_EQ(data_mutable[i * ny + j], std::complex<double>(i, j));
+            EXPECT_EQ(data_const[j * nx + i], std::complex<double>(i, j));
+            EXPECT_EQ(data_mutable[j * nx + i], std::complex<double>(i, j));
         }
     }
     
     // Test modifying data through raw pointer
-    data_mutable[5] = std::complex<double>(99, 99);
+    data_mutable[1 * nx + 1] = std::complex<double>(99, 99);
     EXPECT_EQ(wf(1, 1), std::complex<double>(99, 99));
 }
 
@@ -156,7 +156,7 @@ TEST(WavefunctionTest, ProbabilityDensity) {
     for (int i = 0; i < nx; ++i) {
         for (int j = 0; j < ny; ++j) {
             double expected = std::norm(wf(i, j));
-            EXPECT_NEAR(density[i * ny + j], expected, 1e-6);
+            EXPECT_NEAR(density[j * nx + i], expected, 1e-6);
         }
     }
 }
