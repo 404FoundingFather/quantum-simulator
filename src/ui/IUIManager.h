@@ -69,6 +69,12 @@ public:
     virtual void cleanup() = 0;
     
     /**
+     * @brief Shutdown the UI manager and release resources
+     * This method should be called before destruction to properly release resources.
+     */
+    virtual void shutdown() = 0;
+    
+    /**
      * @brief Get the current simulation state
      * @return Current simulation state
      */

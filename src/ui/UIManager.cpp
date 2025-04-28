@@ -546,3 +546,31 @@ void UIManager::renderEventMonitor() {
         ImGui::End();
     }
 }
+
+void UIManager::shutdown() {
+    DEBUG_LOG("UIManager", "Shutting down UI manager");
+    
+    // Unsubscribe from events
+    if (m_eventBus) {
+        try {
+            m_eventBus->unsubscribe(EventType::SimulationStarted, shared_from_this());
+            m_eventBus->unsubscribe(EventType::SimulationPaused, shared_from_this());
+            m_eventBus->unsubscribe(EventType::SimulationReset, shared_from_this());
+            m_eventBus->unsubscribe(EventType::SimulationStepped, shared_from_this());
+            m_eventBus->unsubscribe(EventType::ConfigurationUpdated, shared_from_this());
+            m_eventBus->unsubscribe(EventType::WavefunctionUpdated, shared_from_this());
+            m_eventBus->unsubscribe(EventType::PotentialChanged, shared_from_this());
+            
+            // Publish UI shutdown event
+            m_eventBus->publish(makeEvent<UIConfigChangedEvent>("UIShutdown", "true"));
+            
+            DEBUG_LOG("UIManager", "Unsubscribed from events during shutdown");
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Error during UI manager shutdown: " << e.what() << std::endl;
+        }
+    }
+    
+    // Clean up ImGui resources
+    cleanup();
+}

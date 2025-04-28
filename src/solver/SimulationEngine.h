@@ -3,6 +3,7 @@
 #include <memory>
 #include <complex>
 #include <vector>
+#include <functional>
 #include "ISimulationEngine.h"
 #include "../core/PhysicsConfig.h"
 #include "../core/Wavefunction.h"
@@ -12,6 +13,9 @@
 // Forward declaration for FFTW plan
 struct fftw_plan_s;
 typedef struct fftw_plan_s* fftw_plan;
+
+// Define callback type for step completion
+using StepCompletionCallback = std::function<void()> ;
 
 /**
  * @class SimulationEngine
@@ -81,6 +85,17 @@ public:
      */
     std::vector<float> getProbabilityDensity() const override;
 
+    /**
+     * @brief Shutdown the simulation engine and release resources
+     */
+    void shutdown() override;
+
+    /**
+     * @brief Set a callback to be invoked when a simulation step completes
+     * @param callback The function to call after each step
+     */
+    void setStepCompletionCallback(StepCompletionCallback callback);
+
 private:
     /**
      * @brief Initialize the wavefunction based on current config
@@ -132,4 +147,7 @@ private:
 
     // Event system
     std::shared_ptr<EventBus> m_eventBus;  ///< Event bus for publishing events
+
+    // Step completion callback
+    StepCompletionCallback m_stepCompletionCallback;  ///< Callback for step completion notification
 };

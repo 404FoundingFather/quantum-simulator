@@ -38,6 +38,7 @@ public:
     void processInput() override;
     void render() override;
     void cleanup() override;
+    void shutdown() override;
     
     // Getters
     SimulationState getSimulationState() const override { return m_simState; }

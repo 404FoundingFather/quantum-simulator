@@ -39,6 +39,12 @@ public:
     virtual void cleanup() = 0;
     
     /**
+     * @brief Shutdown the visualization engine and release resources
+     * This method should be called before destruction to properly release resources.
+     */
+    virtual void shutdown() = 0;
+    
+    /**
      * @brief Get the width of the visualization area
      * @return Width in pixels
      */

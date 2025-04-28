@@ -70,4 +70,12 @@ public:
      * @return Vector of probability densities at each grid point
      */
     virtual std::vector<float> getProbabilityDensity() const = 0;
+    
+    /**
+     * @brief Shutdown the simulation engine and release resources
+     * 
+     * This method properly cleans up resources and prepares the engine
+     * for shutdown. Should be called before destruction.
+     */
+    virtual void shutdown() = 0;
 };

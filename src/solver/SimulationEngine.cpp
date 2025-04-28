@@ -249,6 +249,11 @@ void SimulationEngine::step() {
         m_eventBus->publish(makeEvent<WavefunctionUpdatedEvent>());
         DEBUG_LOG("SimulationEngine", "Published WavefunctionUpdated event");
     }
+    
+    // Call the step completion callback if registered
+    if (m_stepCompletionCallback) {
+        m_stepCompletionCallback();
+    }
 }
 
 // Reset the simulation
@@ -379,4 +384,24 @@ std::vector<float> SimulationEngine::getProbabilityDensity() const {
     }
     
     return densityData;
+}
+
+// Set step completion callback
+void SimulationEngine::setStepCompletionCallback(StepCompletionCallback callback) {
+    DEBUG_LOG("SimulationEngine", "Setting step completion callback");
+    m_stepCompletionCallback = std::move(callback);
+}
+
+// Shutdown resources
+void SimulationEngine::shutdown() {
+    DEBUG_LOG("SimulationEngine", "Shutting down SimulationEngine");
+    
+    // Clean up FFTW plans
+    cleanupFFTWPlans();
+    
+    // Publish shutdown event if event bus is available
+    if (m_eventBus) {
+        m_eventBus->publish(makeEvent<SimulationEngineShutdownEvent>());
+        DEBUG_LOG("SimulationEngine", "Published SimulationEngineShutdown event");
+    }
 }

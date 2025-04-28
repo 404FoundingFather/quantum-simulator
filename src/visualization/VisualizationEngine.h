@@ -21,6 +21,7 @@ public:
     bool initialize(GLFWwindow* window) override;
     void render(const std::vector<float>& probabilityDensity) override;
     void cleanup() override;
+    void shutdown() override;
     
     // Getters
     int getWidth() const override { return m_width; }

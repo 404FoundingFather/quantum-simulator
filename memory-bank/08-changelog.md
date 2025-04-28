@@ -1,10 +1,23 @@
 # Changelog
 
-**Last Updated:** April 28, 2025
+**Last Updated:** April 30, 2025
 
 ## Unreleased
 
 ### Added
+- Implemented core component integration for coordinated simulation operation:
+  - Created `ApplicationController` class to manage component lifecycle and synchronization
+  - Added step completion callback system to `SimulationEngine` for event-based updates
+  - Implemented `shutdown()` methods across all major components for proper resource cleanup
+  - Added new event types for component coordination:
+    - `SimulationStepCompletedEvent`: Signals when a simulation step is fully processed
+    - `SimulationEngineShutdownEvent`: Notifies system of simulation engine shutdown
+    - `UIConfigChangedEvent`: Communicates UI configuration changes to other components
+  - Established synchronization mechanism between physics simulation and visualization
+  - Implemented frame rate limiting to prevent excessive CPU usage
+- Enhanced event system with additional event types and handling mechanisms
+- Added proper component lifecycle management for initialization and shutdown sequences
+- Implemented coordinated update cycle with timing control
 - Implemented comprehensive Event System for component communication:
   - `Event` base class with timestamp and type identification
   - `EventBus` central dispatcher implementing publisher-subscriber pattern
@@ -127,6 +140,14 @@
 - Created detailed documentation for the interface-based design and event system
 - Fixed array indexing issues and segmentation faults in simulation components
 - Enhanced main application with better error handling and diagnostics
+
+### Sprint 3 (Component Integration) - In Progress (started 2025-04-29)
+- Completed core component integration task (2025-04-30):
+  - Created ApplicationController for component lifecycle management
+  - Implemented proper shutdown and cleanup procedures for all components
+  - Added step completion callback system for simulation synchronization
+  - Created event-driven rendering updates for improved performance
+  - Implemented frame rate limiting to reduce CPU usage
 
 ## Version Numbering Convention
 

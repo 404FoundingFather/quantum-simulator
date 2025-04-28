@@ -158,14 +158,7 @@ bool VisualizationEngine::initialize(GLFWwindow* window) {
 }
 
 VisualizationEngine::~VisualizationEngine() {
-    // Unsubscribe from events if we have an event bus
-    if (m_eventBus) {
-        m_eventBus->unsubscribe(EventType::WavefunctionUpdated, shared_from_this());
-        m_eventBus->unsubscribe(EventType::SimulationStepped, shared_from_this());
-        m_eventBus->unsubscribe(EventType::ConfigurationUpdated, shared_from_this());
-    }
-    
-    cleanup();
+    shutdown();
 }
 
 bool VisualizationEngine::handleEvent(const EventPtr& event) {
@@ -354,4 +347,21 @@ void VisualizationEngine::setScale(float scale) {
             glUniform1f(scaleLocation, m_scale);
         }
     }
+}
+
+void VisualizationEngine::shutdown() {
+    DEBUG_LOG("VisualizationEngine", "Shutting down visualization engine");
+    
+    // Unsubscribe from events if we have an event bus
+    if (m_eventBus) {
+        m_eventBus->unsubscribe(EventType::WavefunctionUpdated, shared_from_this());
+        m_eventBus->unsubscribe(EventType::SimulationStepped, shared_from_this());
+        m_eventBus->unsubscribe(EventType::ConfigurationUpdated, shared_from_this());
+        
+        // Publish visualization engine shutdown event if needed
+        m_eventBus->publish(makeEvent<RenderingCompletedEvent>());
+    }
+    
+    // Clean up OpenGL resources
+    cleanup();
 }

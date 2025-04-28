@@ -2,6 +2,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <chrono>
+#include <thread>
 #define GLFW_INCLUDE_NONE  // prevent GLFW from loading OpenGL headers
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -14,6 +16,7 @@
 #include "core/ServiceContainer.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
+#include "core/IEventHandler.h"
 #include "solver/ISimulationEngine.h"
 #include "solver/SimulationEngine.h"
 #include "visualization/IVisualizationEngine.h"
@@ -27,8 +30,196 @@ const int WINDOW_HEIGHT = 600;
 const char* WINDOW_TITLE = "Quantum Mechanics Simulator";
 const char* GLSL_VERSION = "#version 330";
 
-// Simplified simulation state enum (matching UI Manager but without dependency)
-enum class SimState { Stopped, Running, Paused };
+// Target frame rate and simulation update rate
+const double TARGET_FPS = 60.0;
+const double SIMULATION_RATE = 30.0; // Simulation steps per second
+const double FRAME_TIME = 1.0 / TARGET_FPS;
+const double SIMULATION_TIME = 1.0 / SIMULATION_RATE;
+
+// Application state manager class for coordinating components
+class ApplicationController : public IEventHandler, public std::enable_shared_from_this<ApplicationController> {
+private:
+    std::shared_ptr<EventBus> eventBus;
+    std::shared_ptr<ISimulationEngine> simulationEngine;
+    std::shared_ptr<IVisualizationEngine> visualizationEngine;
+    std::shared_ptr<IUIManager> uiManager;
+    
+    bool isRunning = true;
+    bool needsRender = true;
+    bool simulationUpdated = false;
+    std::chrono::time_point<std::chrono::high_resolution_clock> lastSimulationUpdateTime;
+    std::chrono::time_point<std::chrono::high_resolution_clock> lastRenderTime;
+    std::chrono::time_point<std::chrono::high_resolution_clock> lastFrameTime;
+    double fpsCounter = 0.0;
+    int frameCount = 0;
+    
+public:
+    ApplicationController(
+        std::shared_ptr<EventBus> eventBus,
+        std::shared_ptr<ISimulationEngine> simulationEngine,
+        std::shared_ptr<IVisualizationEngine> visualizationEngine,
+        std::shared_ptr<IUIManager> uiManager)
+        : eventBus(eventBus),
+          simulationEngine(simulationEngine),
+          visualizationEngine(visualizationEngine),
+          uiManager(uiManager) {
+        
+        // Register for events
+        if (eventBus) {
+            eventBus->subscribe(EventType::SimulationStarted, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+            eventBus->subscribe(EventType::SimulationPaused, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+            eventBus->subscribe(EventType::SimulationReset, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+            eventBus->subscribe(EventType::SimulationStepCompleted, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+            eventBus->subscribe(EventType::ApplicationExiting, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+            eventBus->subscribe(EventType::UIConfigChanged, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+        }
+        
+        // Initialize timing
+        lastSimulationUpdateTime = std::chrono::high_resolution_clock::now();
+        lastRenderTime = lastSimulationUpdateTime;
+        lastFrameTime = lastSimulationUpdateTime;
+    }
+    
+    ~ApplicationController() {
+        // Unsubscribe from events
+        if (eventBus) {
+            eventBus->unsubscribe(EventType::SimulationStarted, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+            eventBus->unsubscribe(EventType::SimulationPaused, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+            eventBus->unsubscribe(EventType::SimulationReset, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+            eventBus->unsubscribe(EventType::SimulationStepCompleted, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+            eventBus->unsubscribe(EventType::ApplicationExiting, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+            eventBus->unsubscribe(EventType::UIConfigChanged, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+        }
+    }
+    
+    bool initialize() {
+        DEBUG_LOG("AppController", "Initializing application controller");
+        return true;
+    }
+    
+    void shutdown() {
+        DEBUG_LOG("AppController", "Shutting down application controller");
+        isRunning = false;
+    }
+    
+    bool shouldContinue() const {
+        return isRunning;
+    }
+    
+    void processFrame(GLFWwindow* window) {
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        
+        // Calculate delta times
+        double frameTimeDelta = std::chrono::duration<double>(currentTime - lastFrameTime).count();
+        double simulationTimeDelta = std::chrono::duration<double>(currentTime - lastSimulationUpdateTime).count();
+        double renderTimeDelta = std::chrono::duration<double>(currentTime - lastRenderTime).count();
+        
+        // Update FPS counter
+        frameCount++;
+        if (frameTimeDelta >= 1.0) {
+            fpsCounter = frameCount / frameTimeDelta;
+            frameCount = 0;
+            lastFrameTime = currentTime;
+            
+            // Update UI with stats
+            if (uiManager) {
+                uiManager->updateStats(simulationEngine->getCurrentTime(), fpsCounter);
+            }
+            
+            DEBUG_LOG("Performance", "FPS: " + std::to_string(fpsCounter));
+        }
+        
+        // Poll for input events
+        glfwPollEvents();
+        
+        // Process UI input
+        if (uiManager) {
+            uiManager->processInput();
+        }
+        
+        // Step simulation if running and it's time for an update
+        if (uiManager && uiManager->getSimulationState() == SimulationState::Running && 
+            simulationTimeDelta >= SIMULATION_TIME) {
+            
+            simulationEngine->step();
+            lastSimulationUpdateTime = currentTime;
+            simulationUpdated = true;
+        }
+        
+        // Render visualization and UI if needed (either simulation updated or frame time passed)
+        if ((simulationUpdated || renderTimeDelta >= FRAME_TIME) && visualizationEngine && uiManager) {
+            // Get probability density data for visualization
+            std::vector<float> densityData = simulationEngine->getProbabilityDensity();
+            
+            // Render visualization
+            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            visualizationEngine->render(densityData);
+            
+            // Render UI
+            uiManager->render();
+            
+            // Swap buffers
+            glfwSwapBuffers(window);
+            
+            lastRenderTime = currentTime;
+            simulationUpdated = false;
+            needsRender = false;
+        }
+        
+        // Sleep to limit CPU usage if we're ahead of schedule
+        double timeToNextFrame = FRAME_TIME - std::chrono::duration<double>(
+            std::chrono::high_resolution_clock::now() - currentTime).count();
+        
+        if (timeToNextFrame > 0.001) {  // Only sleep for meaningful amounts of time
+            std::this_thread::sleep_for(std::chrono::milliseconds(
+                static_cast<int>(timeToNextFrame * 1000.0 * 0.9))); // 90% of wait time to account for sleep imprecision
+        }
+    }
+    
+    // IEventHandler implementation
+    bool handleEvent(const EventPtr& event) override {
+        if (!event) return false;
+        
+        switch (event->getType()) {
+            case EventType::SimulationStarted:
+                DEBUG_LOG("AppController", "Received SimulationStartedEvent");
+                break;
+                
+            case EventType::SimulationPaused:
+                DEBUG_LOG("AppController", "Received SimulationPausedEvent");
+                break;
+                
+            case EventType::SimulationReset:
+                DEBUG_LOG("AppController", "Received SimulationResetEvent");
+                simulationUpdated = true;  // Force a render update
+                break;
+                
+            case EventType::SimulationStepCompleted:
+                DEBUG_LOG("AppController", "Received SimulationStepCompletedEvent");
+                simulationUpdated = true;
+                break;
+                
+            case EventType::UIConfigChanged:
+                DEBUG_LOG("AppController", "Received UIConfigChangedEvent");
+                // Force a render update when configuration changes
+                simulationUpdated = true;
+                needsRender = true;
+                break;
+                
+            case EventType::ApplicationExiting:
+                DEBUG_LOG("AppController", "Received ApplicationExitingEvent");
+                shutdown();
+                break;
+                
+            default:
+                // Ignore other events
+                return false;
+        }
+        
+        return true;
+    }
+};
 
 // Function to print help information
 void printHelp(const char* programName) {
@@ -175,7 +366,17 @@ int main(int argc, char** argv) {
         // Connect UI manager to simulation engine
         uiManager->setSimulationEngine(simulationEngine);
         
-        // Register event handlers
+        // Create application controller to manage component integration
+        DEBUG_LOG("Main", "Creating application controller");
+        auto appController = std::make_shared<ApplicationController>(
+            eventBus, simulationEngine, visualizationEngine, uiManager);
+        
+        if (!appController->initialize()) {
+            DEBUG_LOG("Main", "Failed to initialize application controller");
+            throw std::runtime_error("Failed to initialize application controller");
+        }
+        
+        // Register event callbacks with event system rather than direct connections
         uiManager->registerStartCallback([&]() {
             if (eventBus) {
                 eventBus->publish(makeEvent<SimulationStartedEvent>());
@@ -194,63 +395,34 @@ int main(int argc, char** argv) {
             }
         });
         
+        // Modify the SimulationEngine to publish events after each step
+        simulationEngine->setStepCompletionCallback([&]() {
+            if (eventBus) {
+                eventBus->publish(makeEvent<SimulationStepCompletedEvent>());
+            }
+        });
+        
         // Publish application started event
         eventBus->publish(makeEvent<ApplicationStartedEvent>());
         
         std::cout << "Entering main loop..." << std::endl;
         DEBUG_LOG_TIME("Main", "Starting main simulation loop");
         
-        // Main loop
-        int frameCount = 0;
-        double lastTime = glfwGetTime();
-        
-        while (!glfwWindowShouldClose(window) && frameCount < 500) {
-            // Increment frame counter
-            frameCount++;
-            
-            // Calculate FPS
-            double currentTime = glfwGetTime();
-            double deltaTime = currentTime - lastTime;
-            if (deltaTime >= 1.0) {
-                double fps = frameCount / deltaTime;
-                frameCount = 0;
-                lastTime = currentTime;
-                DEBUG_LOG("Performance", "FPS: " + std::to_string(fps));
-                
-                // Update UI with stats
-                uiManager->updateStats(simulationEngine->getCurrentTime(), fps);
-            }
-            
-            // Poll for and process events
-            glfwPollEvents();
-            
-            // Process UI input
-            uiManager->processInput();
-            
-            // Step simulation if running
-            if (uiManager->getSimulationState() == SimulationState::Running) {
-                simulationEngine->step();
-            }
-            
-            // Get probability density data for visualization
-            std::vector<float> densityData = simulationEngine->getProbabilityDensity();
-            
-            // Render visualization
-            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-            visualizationEngine->render(densityData);
-            
-            // Render UI
-            uiManager->render();
-            
-            // Swap buffers
-            glfwSwapBuffers(window);
+        // Main loop - now delegated to the application controller
+        while (!glfwWindowShouldClose(window) && appController->shouldContinue()) {
+            appController->processFrame(window);
         }
         
         // Publish application exiting event
         if (eventBus) {
             eventBus->publish(makeEvent<ApplicationExitingEvent>());
         }
+        
+        // Clean up components in proper order
+        DEBUG_LOG("Main", "Shutting down components");
+        uiManager->shutdown();
+        visualizationEngine->shutdown();
+        simulationEngine->shutdown();
     }
     catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
