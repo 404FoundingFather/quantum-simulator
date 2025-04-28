@@ -1,6 +1,30 @@
 # Quantum Mechanics Simulation (QMSim)
 
-This project simulates 2D quantum wavepacket dynamics using the Split‑Step Fourier Method.
+An advanced 2D quantum mechanics simulator that visualizes wave function dynamics in real-time. QMSim solves the Time-Dependent Schrödinger Equation using the Split-Step Fourier Method (SSFM) to provide an interactive environment for exploring quantum phenomena such as tunneling, interference, and energy quantization.
+
+## Overview
+
+QMSim allows physicists, students, and educators to:
+
+- Visualize quantum wave packet propagation in real-time
+- Experiment with different potential configurations
+- Observe quantum tunneling and interference effects
+- Study harmonic oscillator and energy quantization
+- Measure quantum observables and probability distributions
+- Export simulation data for further analysis
+
+The project employs a modular, interface-based architecture that ensures extensibility and maintainability while leveraging modern C++17 features for optimal performance.
+
+## Current Status
+
+As of April 2025, QMSim is in active development at Sprint 2 (Architectural Improvements). Recent work focuses on:
+
+- **Interface-based design** with clear component contracts
+- **Comprehensive event system** for loose component coupling
+- **Dependency injection** via ServiceContainer
+- **Debug utilities** for runtime monitoring and diagnostics
+
+Sprint 3 will focus on component integration and visualization refinements.
 
 ## Features
 - 2D Time‑Dependent Schrödinger Equation solver (SSFM)
