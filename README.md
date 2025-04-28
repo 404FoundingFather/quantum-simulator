@@ -36,7 +36,7 @@ Sprint 3 will focus on component integration and visualization refinements.
 ## Getting Started
 1. Clone the repository:
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/404FoundingFather/quantum-simulator.git qms
    cd qms
    ```
 2. Install prerequisites:
@@ -134,6 +134,7 @@ Sprint 3 will focus on component integration and visualization refinements.
         cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE="${PWD}\vcpkg\scripts\buildsystems\vcpkg.cmake" -DCMAKE_BUILD_TYPE=Release
         ```
         #### If you see a 'generator platform does not match' error, delete the 'build' folder or clear CMakeCache.txt and CMakeFiles before re-running.
+
 3. Create build directory and configure:
    ```bash
    mkdir build && cd build
