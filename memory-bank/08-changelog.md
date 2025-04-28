@@ -1,15 +1,26 @@
 # Changelog
 
-**Last Updated:** April 25, 2025
+**Last Updated:** April 28, 2025
 
 ## Unreleased
 
 ### Added
+- Implemented comprehensive Event System for component communication:
+  - `Event` base class with timestamp and type identification
+  - `EventBus` central dispatcher implementing publisher-subscriber pattern
+  - `IEventHandler` interface for event subscribers
+  - Concrete event classes organized by domain (Simulation, Wavefunction, etc.)
+  - Event history tracking for debugging purposes
+  - Thread-safe event publishing and subscription management
+- Added Event Monitor panel to UI for real-time event debugging
+- Created detailed event-system.md documentation with best practices
 - Implemented interface-based design with clear contracts:
   - `ISimulationEngine`: Defines simulation evolution methods
   - `IVisualizationEngine`: For rendering quantum state data
   - `IUIManager`: For managing the user interface
-- Created `ServiceContainer` for dependency injection
+- Created `ServiceContainer` for dependency injection:
+  - Added `registerInstance` method to support registering existing components
+  - Fixed shared_ptr handling in component registration
 - Added `ComponentFactory` for component instantiation
 - Comprehensive debug tracing infrastructure for component initialization
 - Improved error handling for OpenGL and FFTW3 operations
@@ -42,9 +53,14 @@
 - Windows, Linux, macOS setup instructions in README and environment docs
 
 ### Changed
-- Refactored `SimulationEngine` to implement the `ISimulationEngine` interface
-- Refactored `VisualizationEngine` to implement the `IVisualizationEngine` interface  
-- Refactored `UIManager` to implement the `IUIManager` interface
+- Updated main.cpp to use the event system for component communication:
+  - Application publishes startup and shutdown events
+  - Components subscribe to relevant events at initialization
+- Enhanced component initialization with event-based signaling
+- Added event-driven workflow for simulation control and visualization updates
+- Refactored `SimulationEngine` to implement the `ISimulationEngine` interface and publish events
+- Refactored `VisualizationEngine` to implement the `IVisualizationEngine` interface and subscribe to events
+- Refactored `UIManager` to implement the `IUIManager` interface and handle event publishing/subscription
 - Updated array indexing in `Wavefunction` class to use correct row-major ordering (`j * m_nx + i`)
 - Enhanced main.cpp to use interfaces rather than concrete implementations
 - Implemented incremental component initialization and validation for improved stability
@@ -55,6 +71,8 @@
   - Ensured correct handling of different grid sizes and time steps
 
 ### Fixed
+- Fixed Service Container registration of existing component instances
+- Fixed event subscription management to prevent memory leaks
 - Resolved segmentation fault in application startup sequence
 - Fixed array indexing inconsistencies in `Wavefunction.h`
 - Fixed `getProbabilityDensity()` methods to use consistent indexing patterns
@@ -102,9 +120,11 @@
 - Wrote comprehensive unit tests for core modules
 - Enhanced `Wavefunction` class with initialization and normalization methods
 
-### Sprint 2 (Architectural Improvements) - 2025-04-25
+### Sprint 2 (Architectural Improvements) - 2025-04-28
 - Implemented interface-based design with ISimulationEngine, IVisualizationEngine, and IUIManager
 - Created ServiceContainer for dependency injection and ComponentFactory for component creation
+- Developed comprehensive Event System for component communication
+- Created detailed documentation for the interface-based design and event system
 - Fixed array indexing issues and segmentation faults in simulation components
 - Enhanced main application with better error handling and diagnostics
 

@@ -1,6 +1,6 @@
 # Memory-Bank Index
 
-**Last Updated:** April 19, 2025
+**Last Updated:** April 28, 2025
 
 This index serves as the central navigation hub for project documentation. When starting a new AI session, reading these files in the order presented will provide the most efficient onboarding experience.
 
@@ -61,6 +61,14 @@ This index serves as the central navigation hub for project documentation. When 
 14. **13-quick-reference.md**
     - Project glossary and terminology
     - Common commands and key file locations
+
+15. **interface-design.md**
+    - Interface-based design implementation
+    - Core interfaces, dependency injection, and component factory details
+
+16. **event-system.md**
+    - Event system design and implementation
+    - Publisher-subscriber pattern for component communication
 
 ## Purpose of the Memory-Bank
 

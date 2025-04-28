@@ -11,10 +11,15 @@
 
 #include "core/PhysicsConfig.h"
 #include "core/DebugUtils.h"
+#include "core/ServiceContainer.h"
+#include "core/EventBus.h"
+#include "core/Events.h"
 #include "solver/ISimulationEngine.h"
 #include "solver/SimulationEngine.h"
 #include "visualization/IVisualizationEngine.h"
 #include "visualization/VisualizationEngine.h"
+#include "ui/UIManager.h"
+#include "ui/IUIManager.h"
 
 // Constants
 const int WINDOW_WIDTH = 800;
@@ -112,6 +117,14 @@ int main(int argc, char** argv) {
         std::cout << "Initializing simulation components..." << std::endl;
         DEBUG_LOG("Main", "Beginning simulation component initialization");
         
+        // Create service container and register components
+        ServiceContainer serviceContainer;
+        
+        // Register EventBus as a singleton
+        DEBUG_LOG("Main", "Creating and registering EventBus");
+        auto eventBus = std::make_shared<EventBus>();
+        serviceContainer.registerInstance<EventBus, EventBus>(eventBus);
+        
         // Create and configure physics
         PhysicsConfig config;
         config.nx = 256;
@@ -132,11 +145,18 @@ int main(int argc, char** argv) {
         
         // Create components
         DEBUG_LOG("Simulation", "Creating simulation engine with configured physics");
-        auto simulationEngine = std::make_shared<SimulationEngine>(config);
+        auto simulationEngine = std::make_shared<SimulationEngine>(config, eventBus);
+        serviceContainer.registerInstance<ISimulationEngine, SimulationEngine>(simulationEngine);
         
         DEBUG_LOG("Visualization", "Creating visualization engine with dimensions " + 
                  std::to_string(config.nx) + "x" + std::to_string(config.ny));
-        auto visualizationEngine = std::make_shared<VisualizationEngine>(config.nx, config.ny);
+        auto visualizationEngine = std::make_shared<VisualizationEngine>(config.nx, config.ny, eventBus);
+        serviceContainer.registerInstance<IVisualizationEngine, VisualizationEngine>(visualizationEngine);
+        
+        // Create UI manager
+        DEBUG_LOG("UI", "Creating UI manager with event bus");
+        auto uiManager = std::make_shared<UIManager>(eventBus);
+        serviceContainer.registerInstance<IUIManager, UIManager>(uiManager);
         
         // Initialize visualization engine
         DEBUG_LOG("Visualization", "Initializing visualization engine with OpenGL");
@@ -145,12 +165,44 @@ int main(int argc, char** argv) {
             throw std::runtime_error("Failed to initialize visualization engine");
         }
         
+        // Initialize UI manager
+        DEBUG_LOG("UI", "Initializing UI manager");
+        if (!uiManager->initialize(window, GLSL_VERSION)) {
+            DEBUG_LOG("UI", "Failed to initialize UI manager");
+            throw std::runtime_error("Failed to initialize UI manager");
+        }
+        
+        // Connect UI manager to simulation engine
+        uiManager->setSimulationEngine(simulationEngine);
+        
+        // Register event handlers
+        uiManager->registerStartCallback([&]() {
+            if (eventBus) {
+                eventBus->publish(makeEvent<SimulationStartedEvent>());
+            }
+        });
+        
+        uiManager->registerStopCallback([&]() {
+            if (eventBus) {
+                eventBus->publish(makeEvent<SimulationPausedEvent>());
+            }
+        });
+        
+        uiManager->registerResetCallback([&]() {
+            if (eventBus) {
+                eventBus->publish(makeEvent<SimulationResetEvent>());
+            }
+        });
+        
+        // Publish application started event
+        eventBus->publish(makeEvent<ApplicationStartedEvent>());
+        
         std::cout << "Entering main loop..." << std::endl;
         DEBUG_LOG_TIME("Main", "Starting main simulation loop");
+        
         // Main loop
         int frameCount = 0;
         double lastTime = glfwGetTime();
-        SimState simState = SimState::Stopped;
         
         while (!glfwWindowShouldClose(window) && frameCount < 500) {
             // Increment frame counter
@@ -164,69 +216,21 @@ int main(int argc, char** argv) {
                 frameCount = 0;
                 lastTime = currentTime;
                 DEBUG_LOG("Performance", "FPS: " + std::to_string(fps));
+                
+                // Update UI with stats
+                uiManager->updateStats(simulationEngine->getCurrentTime(), fps);
             }
             
             // Poll for and process events
             glfwPollEvents();
             
+            // Process UI input
+            uiManager->processInput();
+            
             // Step simulation if running
-            if (simState == SimState::Running) {
+            if (uiManager->getSimulationState() == SimulationState::Running) {
                 simulationEngine->step();
             }
-            
-            // Start ImGui frame
-            ImGui_ImplOpenGL3_NewFrame();
-            ImGui_ImplGlfw_NewFrame();
-            ImGui::NewFrame();
-            
-            // Simple ImGui window for simulation control
-            ImGui::Begin("Simulation Control");
-            
-            if (ImGui::Button(simState == SimState::Running ? "Stop" : "Start")) {
-                simState = (simState == SimState::Running) ? SimState::Stopped : SimState::Running;
-                DEBUG_LOG_TIME("Simulation", simState == SimState::Running ? 
-                    "Simulation started" : "Simulation stopped");
-            }
-            
-            ImGui::SameLine();
-            
-            if (ImGui::Button("Reset")) {
-                simulationEngine->reset();
-                DEBUG_LOG("Simulation", "Simulation reset");
-            }
-            
-            ImGui::Text("Simulation time: %.3f", simulationEngine->getCurrentTime());
-            
-            // Display total probability as a check
-            double totalProb = simulationEngine->getTotalProbability();
-            ImGui::Text("Total probability: %.6f", totalProb);
-            
-            DEBUG_IF(totalProb < 0.99 || totalProb > 1.01) {
-                DEBUG_LOG_TIME("Simulation", "Warning: Probability not conserved: " + std::to_string(totalProb));
-            }
-            
-            // Add runtime debug toggle
-            bool currentDebugEnabled = DebugUtils::getInstance().isDebugEnabled();
-            if (ImGui::Checkbox("Debug Mode", &currentDebugEnabled)) {
-                DebugUtils::getInstance().setDebugEnabled(currentDebugEnabled);
-                DEBUG_LOG("Main", "Debug mode " + std::string(currentDebugEnabled ? "enabled" : "disabled"));
-            }
-            
-            // Visualization controls
-            ImGui::Separator();
-            ImGui::Text("Visualization Controls");
-            
-            static int colormap = 0;
-            if (ImGui::Combo("Colormap", &colormap, "Viridis\0Plasma\0Inferno\0Magma\0Jet\0")) {
-                visualizationEngine->setColormap(colormap);
-            }
-            
-            static float scale = 1.0f;
-            if (ImGui::SliderFloat("Scale", &scale, 0.1f, 5.0f)) {
-                visualizationEngine->setScale(scale);
-            }
-            
-            ImGui::End();
             
             // Get probability density data for visualization
             std::vector<float> densityData = simulationEngine->getProbabilityDensity();
@@ -236,12 +240,16 @@ int main(int argc, char** argv) {
             glClear(GL_COLOR_BUFFER_BIT);
             visualizationEngine->render(densityData);
             
-            // Render ImGui on top
-            ImGui::Render();
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            // Render UI
+            uiManager->render();
             
             // Swap buffers
             glfwSwapBuffers(window);
+        }
+        
+        // Publish application exiting event
+        if (eventBus) {
+            eventBus->publish(makeEvent<ApplicationExitingEvent>());
         }
     }
     catch (const std::exception& e) {

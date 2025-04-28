@@ -1,4 +1,6 @@
 #include "VisualizationEngine.h"
+#include "../core/Events.h"
+#include "../core/DebugUtils.h"
 #define GLFW_INCLUDE_NONE  // do not include OpenGL headers in GLFW
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -65,14 +67,13 @@ void main() {
 }
 )glsl";
 
-VisualizationEngine::VisualizationEngine(int width, int height) 
-    : m_width(width), m_height(height) {
+VisualizationEngine::VisualizationEngine(int width, int height, std::shared_ptr<EventBus> eventBus) 
+    : m_width(width), m_height(height), m_eventBus(eventBus) {
     // Initialize member variables to default values
     m_initialized = false;
-}
-
-VisualizationEngine::~VisualizationEngine() {
-    cleanup();
+    
+    // Note: We can't subscribe to events in the constructor because shared_from_this()
+    // can't be called in the constructor. We'll subscribe in the initialize method.
 }
 
 bool VisualizationEngine::initialize(GLFWwindow* window) {
@@ -140,8 +141,85 @@ bool VisualizationEngine::initialize(GLFWwindow* window) {
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
     
+    // Subscribe to events now that the object is fully constructed
+    if (m_eventBus) {
+        m_eventBus->subscribe(EventType::WavefunctionUpdated, shared_from_this());
+        m_eventBus->subscribe(EventType::SimulationStepped, shared_from_this());
+        m_eventBus->subscribe(EventType::ConfigurationUpdated, shared_from_this());
+        
+        // Publish a RenderingStarted event
+        m_eventBus->publish(makeEvent<RenderingStartedEvent>());
+        
+        DEBUG_LOG("VisualizationEngine", "Subscribed to events");
+    }
+    
     m_initialized = true;
     return true;
+}
+
+VisualizationEngine::~VisualizationEngine() {
+    // Unsubscribe from events if we have an event bus
+    if (m_eventBus) {
+        m_eventBus->unsubscribe(EventType::WavefunctionUpdated, shared_from_this());
+        m_eventBus->unsubscribe(EventType::SimulationStepped, shared_from_this());
+        m_eventBus->unsubscribe(EventType::ConfigurationUpdated, shared_from_this());
+    }
+    
+    cleanup();
+}
+
+bool VisualizationEngine::handleEvent(const EventPtr& event) {
+    switch (event->getType()) {
+        case EventType::WavefunctionUpdated: {
+            // We would normally trigger a re-render here, but in our current architecture
+            // rendering is done in the main loop, so we'll just log this event
+            DEBUG_LOG("VisualizationEngine", "Received WavefunctionUpdated event");
+            return true;
+        }
+        
+        case EventType::SimulationStepped: {
+            auto steppedEvent = std::dynamic_pointer_cast<SimulationSteppedEvent>(event);
+            if (steppedEvent) {
+                DEBUG_LOG("VisualizationEngine", "Received SimulationStepped event - Time: " 
+                        + std::to_string(steppedEvent->getTime())
+                        + ", Total Probability: " 
+                        + std::to_string(steppedEvent->getTotalProbability()));
+            }
+            return true;
+        }
+        
+        case EventType::ConfigurationUpdated: {
+            auto configEvent = std::dynamic_pointer_cast<ConfigurationUpdatedEvent>(event);
+            if (configEvent) {
+                const std::string& param = configEvent->getParameter();
+                const std::string& value = configEvent->getValue();
+                
+                DEBUG_LOG("VisualizationEngine", "Received ConfigurationUpdated event - "
+                        + param + ": " + value);
+                
+                // Handle specific configuration parameters
+                if (param == "colormap") {
+                    try {
+                        int colormapType = std::stoi(value);
+                        setColormap(colormapType);
+                    } catch (const std::exception& e) {
+                        DEBUG_LOG("VisualizationEngine", "Error parsing colormap value: " + value);
+                    }
+                } else if (param == "scale") {
+                    try {
+                        float scale = std::stof(value);
+                        setScale(scale);
+                    } catch (const std::exception& e) {
+                        DEBUG_LOG("VisualizationEngine", "Error parsing scale value: " + value);
+                    }
+                }
+            }
+            return true;
+        }
+        
+        default:
+            return false;  // We didn't handle this event
+    }
 }
 
 void VisualizationEngine::render(const std::vector<float>& probabilityDensity) {

@@ -7,6 +7,7 @@
 #include "../core/PhysicsConfig.h"
 #include "../core/Wavefunction.h"
 #include "../core/Potential.h"
+#include "../core/EventBus.h"
 
 // Forward declaration for FFTW plan
 struct fftw_plan_s;
@@ -25,8 +26,9 @@ public:
     /**
      * @brief Constructor for the simulation engine
      * @param config The physics configuration parameters
+     * @param eventBus The event bus for publishing simulation events
      */
-    SimulationEngine(const PhysicsConfig& config);
+    SimulationEngine(const PhysicsConfig& config, std::shared_ptr<EventBus> eventBus = nullptr);
     
     /**
      * @brief Destructor to clean up FFTW plans and resources
@@ -127,4 +129,7 @@ private:
     // k-space grid values (precomputed)
     std::vector<double> m_kx;  ///< Wave numbers in x direction
     std::vector<double> m_ky;  ///< Wave numbers in y direction
+
+    // Event system
+    std::shared_ptr<EventBus> m_eventBus;  ///< Event bus for publishing events
 };

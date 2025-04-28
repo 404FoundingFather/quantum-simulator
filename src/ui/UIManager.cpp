@@ -7,8 +7,10 @@
 #include <GLFW/glfw3.h>
 #include "../solver/ISimulationEngine.h"
 #include "../core/DebugUtils.h"
+#include "../core/Events.h"
 
-UIManager::UIManager() {
+UIManager::UIManager(std::shared_ptr<EventBus> eventBus)
+    : m_eventBus(eventBus) {
     DEBUG_LOG("UIManager", "Constructing UIManager");
     // Initialize default config values
     m_config.nx = 512;
@@ -46,6 +48,27 @@ UIManager::UIManager() {
 }
 
 UIManager::~UIManager() {
+    // Unsubscribe from events if we have an event bus
+    if (m_eventBus) {
+        try {
+            m_eventBus->unsubscribe(EventType::SimulationStarted, shared_from_this());
+            m_eventBus->unsubscribe(EventType::SimulationPaused, shared_from_this());
+            m_eventBus->unsubscribe(EventType::SimulationReset, shared_from_this());
+            m_eventBus->unsubscribe(EventType::SimulationStepped, shared_from_this());
+            m_eventBus->unsubscribe(EventType::ConfigurationUpdated, shared_from_this());
+            m_eventBus->unsubscribe(EventType::WavefunctionUpdated, shared_from_this());
+            m_eventBus->unsubscribe(EventType::PotentialChanged, shared_from_this());
+            
+            DEBUG_LOG("UIManager", "Unsubscribed from events");
+            
+            // Publish event that UI is shutting down
+            m_eventBus->publish(makeEvent<ApplicationExitingEvent>());
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Error unsubscribing from events: " << e.what() << std::endl;
+        }
+    }
+    
     cleanup();
 }
 
@@ -73,6 +96,28 @@ bool UIManager::initialize(GLFWwindow* window, const char* glslVersion) {
         std::cerr << "Failed to initialize ImGui backends" << std::endl;
         DEBUG_LOG("UIManager", "Failed to initialize ImGui backends");
         return false;
+    }
+    
+    // Subscribe to events
+    if (m_eventBus) {
+        try {
+            m_eventBus->subscribe(EventType::SimulationStarted, shared_from_this());
+            m_eventBus->subscribe(EventType::SimulationPaused, shared_from_this());
+            m_eventBus->subscribe(EventType::SimulationReset, shared_from_this());
+            m_eventBus->subscribe(EventType::SimulationStepped, shared_from_this());
+            m_eventBus->subscribe(EventType::ConfigurationUpdated, shared_from_this());
+            m_eventBus->subscribe(EventType::WavefunctionUpdated, shared_from_this());
+            m_eventBus->subscribe(EventType::PotentialChanged, shared_from_this());
+            
+            DEBUG_LOG("UIManager", "Subscribed to events");
+            
+            // Publish event that UI is initialized
+            m_eventBus->publish(makeEvent<ApplicationStartedEvent>());
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Error subscribing to events: " << e.what() << std::endl;
+            DEBUG_LOG("UIManager", "Error subscribing to events: " + std::string(e.what()));
+        }
     }
     
     m_initialized = true;
@@ -176,6 +221,7 @@ void UIManager::render() {
     renderPotentialSettings();
     renderWavepacketSettings();
     renderDiagnostics();
+    renderEventMonitor();
     
     ImGui::End();
     
@@ -373,5 +419,130 @@ void UIManager::cleanup() {
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
         m_initialized = false;
+    }
+}
+
+bool UIManager::handleEvent(const EventPtr& event) {
+    // Add the event to our recent events list for the event monitor
+    if (m_recentEvents.size() >= MAX_RECENT_EVENTS) {
+        m_recentEvents.erase(m_recentEvents.begin());
+    }
+    m_recentEvents.push_back(event);
+    
+    // Handle specific event types
+    switch (event->getType()) {
+        case EventType::SimulationStarted:
+            DEBUG_LOG("UIManager", "Received SimulationStarted event");
+            m_simState = SimulationState::Running;
+            return true;
+            
+        case EventType::SimulationPaused:
+            DEBUG_LOG("UIManager", "Received SimulationPaused event");
+            m_simState = SimulationState::Paused;
+            return true;
+            
+        case EventType::SimulationReset:
+            DEBUG_LOG("UIManager", "Received SimulationReset event");
+            m_simState = SimulationState::Stopped;
+            return true;
+            
+        case EventType::SimulationStepped: {
+            auto steppedEvent = std::dynamic_pointer_cast<SimulationSteppedEvent>(event);
+            if (steppedEvent) {
+                m_currentTime = steppedEvent->getTime();
+                // Update the displayed total probability
+                DEBUG_LOG("UIManager", "Received SimulationStepped event - Time: " 
+                        + std::to_string(steppedEvent->getTime()));
+            }
+            return true;
+        }
+            
+        case EventType::ConfigurationUpdated: {
+            auto configEvent = std::dynamic_pointer_cast<ConfigurationUpdatedEvent>(event);
+            if (configEvent) {
+                const std::string& param = configEvent->getParameter();
+                const std::string& value = configEvent->getValue();
+                
+                DEBUG_LOG("UIManager", "Received ConfigurationUpdated event - "
+                        + param + ": " + value);
+                
+                // Update UI state based on the parameter
+                if (param == "dt") {
+                    try {
+                        float dt = std::stof(value);
+                        m_uiState.dt = dt;
+                    } catch (...) {
+                        // Ignore parsing errors
+                    }
+                }
+                // Add handling for other parameters as needed
+            }
+            return true;
+        }
+            
+        default:
+            return false;  // We didn't handle this event
+    }
+}
+
+void UIManager::renderEventMonitor() {
+    // If the event bus is not available, don't show the event monitor toggle
+    if (!m_eventBus) return;
+    
+    // Checkbox to toggle event monitor
+    ImGui::Checkbox("Show Event Monitor", &m_showEventMonitor);
+    
+    // Show event monitor window if enabled
+    if (m_showEventMonitor) {
+        ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Event Monitor", &m_showEventMonitor);
+        
+        // Add button to clear event history
+        if (ImGui::Button("Clear Events")) {
+            m_recentEvents.clear();
+            if (m_eventBus) {
+                m_eventBus->clearEventHistory();
+            }
+        }
+        
+        ImGui::SameLine();
+        
+        // Add button to refresh events from event bus
+        if (ImGui::Button("Refresh Events") && m_eventBus) {
+            m_recentEvents = m_eventBus->getEventHistory();
+        }
+        
+        // Draw events table
+        if (ImGui::BeginTable("Events", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY)) {
+            ImGui::TableSetupColumn("Timestamp");
+            ImGui::TableSetupColumn("Type");
+            ImGui::TableSetupColumn("Details");
+            ImGui::TableHeadersRow();
+            
+            // Display events in reverse order (newest first)
+            for (auto it = m_recentEvents.rbegin(); it != m_recentEvents.rend(); ++it) {
+                const auto& event = *it;
+                ImGui::TableNextRow();
+                
+                // Timestamp column
+                ImGui::TableNextColumn();
+                auto now = std::chrono::steady_clock::now();
+                auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    now - event->getTimestamp()).count();
+                ImGui::Text("%lld ms ago", ms);
+                
+                // Type column
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", event->getName().c_str());
+                
+                // Details column
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", event->toString().c_str());
+            }
+            
+            ImGui::EndTable();
+        }
+        
+        ImGui::End();
     }
 }

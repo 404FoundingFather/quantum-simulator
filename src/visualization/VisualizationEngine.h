@@ -2,15 +2,20 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 #include "IVisualizationEngine.h"
+#include "../core/EventBus.h"
+#include "../core/IEventHandler.h"
 
 // Forward declarations to avoid including headers
 class GLFWwindow;
 typedef unsigned int GLuint;
 
-class VisualizationEngine : public IVisualizationEngine {
+class VisualizationEngine : public IVisualizationEngine, 
+                            public IEventHandler,
+                            public std::enable_shared_from_this<VisualizationEngine> {
 public:
-    VisualizationEngine(int width, int height);
+    VisualizationEngine(int width, int height, std::shared_ptr<EventBus> eventBus = nullptr);
     ~VisualizationEngine() override;
 
     bool initialize(GLFWwindow* window) override;
@@ -24,6 +29,9 @@ public:
     // Interface implementation
     void setColormap(int colormapType) override;
     void setScale(float scale) override;
+    
+    // IEventHandler implementation
+    bool handleEvent(const EventPtr& event) override;
 
 private:
     // Shader utility methods
@@ -49,4 +57,7 @@ private:
     bool m_initialized = false;
     int m_colormapType = 0;
     float m_scale = 1.0f;
+    
+    // Event system
+    std::shared_ptr<EventBus> m_eventBus;
 };

@@ -9,6 +9,8 @@
 #include "IUIManager.h"
 #include "../core/PhysicsConfig.h"
 #include "../core/Potential.h" // Added for Potential class
+#include "../core/EventBus.h"
+#include "../core/IEventHandler.h"
 
 // Forward declaration for GLFW
 struct GLFWwindow;
@@ -16,9 +18,11 @@ struct GLFWwindow;
 // Forward declarations
 class ISimulationEngine;
 
-class UIManager : public IUIManager {
+class UIManager : public IUIManager, 
+                  public IEventHandler,
+                  public std::enable_shared_from_this<UIManager> {
 public:
-    UIManager();
+    UIManager(std::shared_ptr<EventBus> eventBus = nullptr);
     ~UIManager() override;
     
     // Initialize the UI components
@@ -81,6 +85,9 @@ public:
     
     // Update simulation stats (FPS, simulation time)
     void updateStats(double currentTime, double fps) override;
+    
+    // IEventHandler implementation
+    bool handleEvent(const EventPtr& event) override;
 
 private:
     // Helper methods to render different UI sections
@@ -89,6 +96,7 @@ private:
     void renderPotentialSettings();
     void renderWavepacketSettings();
     void renderDiagnostics();
+    void renderEventMonitor();
     
     // Helper method to create potential objects
     std::unique_ptr<Potential> createPotentialFromConfig(const PotentialConfig& config);
@@ -130,6 +138,12 @@ private:
     // Engine reference
     std::shared_ptr<ISimulationEngine> m_engine;
     
+    // Event system
+    std::shared_ptr<EventBus> m_eventBus;
+    std::vector<EventPtr> m_recentEvents;
+    bool m_showEventMonitor = false;
+    
     // Constants
     const char* POTENTIAL_TYPES[3] = { "Free Space", "Square Barrier/Well", "Harmonic Oscillator" };
+    const size_t MAX_RECENT_EVENTS = 100;
 };

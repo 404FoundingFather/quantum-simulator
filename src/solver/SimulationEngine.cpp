@@ -3,9 +3,11 @@
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
+#include "../core/Events.h"
+#include "../core/DebugUtils.h"
 
 // Constructor
-SimulationEngine::SimulationEngine(const PhysicsConfig& config)
+SimulationEngine::SimulationEngine(const PhysicsConfig& config, std::shared_ptr<EventBus> eventBus)
     : m_nx(config.nx), 
       m_ny(config.ny),
       m_lx(20.0),  // Default domain size (can be made configurable later)
@@ -15,7 +17,8 @@ SimulationEngine::SimulationEngine(const PhysicsConfig& config)
       m_wavefunction(config.nx, config.ny),
       m_wavepacket(config.wavepacket),  // Store the wavepacket configuration
       m_kx(config.nx),
-      m_ky(config.ny)
+      m_ky(config.ny),
+      m_eventBus(eventBus)
 {
     // Calculate grid spacing
     m_dx = m_lx / m_nx;
@@ -47,6 +50,12 @@ SimulationEngine::SimulationEngine(const PhysicsConfig& config)
             m_ky[j] = 2.0 * M_PI * (j - m_ny) / m_ly;
         }
     }
+    
+    // Publish application started event
+    if (m_eventBus) {
+        m_eventBus->publish(makeEvent<SimulationStartedEvent>());
+        DEBUG_LOG("SimulationEngine", "Published SimulationStarted event");
+    }
 }
 
 // Destructor
@@ -56,10 +65,21 @@ SimulationEngine::~SimulationEngine() {
 
 // Initialize wavefunction based on current configuration
 void SimulationEngine::initializeWavefunction() {
+    DEBUG_LOG("SimulationEngine", "Initializing wavefunction with potential type: " + 
+              (m_potential ? m_potential->getType() : "NULL"));
+    
     // Debug output
     std::cout << "Initializing wavefunction. Potential type: " << (m_potential ? m_potential->getType() : "NULL") << std::endl;
     
     // Use stored wavepacket parameters
+    std::string wavepacketParams = "x0=" + std::to_string(m_wavepacket.x0) + 
+                                  ", y0=" + std::to_string(m_wavepacket.y0) + 
+                                  ", sigmaX=" + std::to_string(m_wavepacket.sigmaX) + 
+                                  ", sigmaY=" + std::to_string(m_wavepacket.sigmaY) + 
+                                  ", kx=" + std::to_string(m_wavepacket.kx) + 
+                                  ", ky=" + std::to_string(m_wavepacket.ky);
+    DEBUG_LOG("SimulationEngine", "Using wavepacket parameters: " + wavepacketParams);
+    
     std::cout << "Using wavepacket parameters: x0=" << m_wavepacket.x0 
               << ", y0=" << m_wavepacket.y0 
               << ", sigmaX=" << m_wavepacket.sigmaX 
@@ -80,9 +100,11 @@ void SimulationEngine::initializeWavefunction() {
 // Initialize FFTW plans
 void SimulationEngine::initializeFFTWPlans() {
     // Debug output and safety checks
+    DEBUG_LOG("SimulationEngine", "Initializing FFTW plans with grid size: " + std::to_string(m_nx) + " x " + std::to_string(m_ny));
     std::cout << "Initializing FFTW plans with grid size: " << m_nx << " x " << m_ny << std::endl;
     
     if (m_wavefunction.data() == nullptr) {
+        DEBUG_LOG("SimulationEngine", "ERROR: Wavefunction data is null!");
         std::cerr << "ERROR: Wavefunction data is null!" << std::endl;
         throw std::runtime_error("Null wavefunction data in initializeFFTWPlans");
     }
@@ -91,6 +113,7 @@ void SimulationEngine::initializeFFTWPlans() {
     
     try {
         // Create plans for forward and backward FFTs
+        DEBUG_LOG("SimulationEngine", "Creating forward FFTW plan");
         std::cout << "Creating forward FFTW plan..." << std::endl;
         m_forwardPlan = fftw_plan_dft_2d(
             m_nx, m_ny,
@@ -99,6 +122,7 @@ void SimulationEngine::initializeFFTWPlans() {
             FFTW_FORWARD, FFTW_MEASURE
         );
         
+        DEBUG_LOG("SimulationEngine", "Creating backward FFTW plan");
         std::cout << "Creating backward FFTW plan..." << std::endl;
         m_backwardPlan = fftw_plan_dft_2d(
             m_nx, m_ny,
@@ -108,10 +132,12 @@ void SimulationEngine::initializeFFTWPlans() {
         );
         
         if (!m_forwardPlan || !m_backwardPlan) {
+            DEBUG_LOG("SimulationEngine", "Failed to create FFTW plans!");
             std::cerr << "Failed to create FFTW plans!" << std::endl;
             throw std::runtime_error("Failed to create FFTW plans");
         }
         
+        DEBUG_LOG("SimulationEngine", "FFTW plans created successfully");
         std::cout << "FFTW plans created successfully." << std::endl;
     }
     catch (const std::exception& e) {
@@ -192,6 +218,8 @@ void SimulationEngine::applyKineticOperator() {
 
 // Perform one SSFM step
 void SimulationEngine::step() {
+    DEBUG_LOG("SimulationEngine", "Performing simulation step");
+    
     // SSFM algorithm for second-order symmetric splitting:
     // 1. Apply half step of potential: exp(-iVdt/2)
     // 2. Apply full step of kinetic: exp(-iKdt)
@@ -208,16 +236,48 @@ void SimulationEngine::step() {
     
     // Update simulation time
     m_currentTime += m_dt;
+    
+    // Publish simulation stepped event
+    if (m_eventBus) {
+        double totalProbability = getTotalProbability();
+        DEBUG_LOG("SimulationEngine", "Step completed. Time: " + std::to_string(m_currentTime) + 
+                  ", Total probability: " + std::to_string(totalProbability));
+        
+        m_eventBus->publish(makeEvent<SimulationSteppedEvent>(m_currentTime, m_dt, totalProbability));
+        
+        // Also publish a wavefunction updated event
+        m_eventBus->publish(makeEvent<WavefunctionUpdatedEvent>());
+        DEBUG_LOG("SimulationEngine", "Published WavefunctionUpdated event");
+    }
 }
 
 // Reset the simulation
 void SimulationEngine::reset() {
+    DEBUG_LOG("SimulationEngine", "Resetting simulation");
+    
     // Re-initialize the wavefunction
     initializeWavefunction();
+    
+    // Publish simulation reset event
+    if (m_eventBus) {
+        m_eventBus->publish(makeEvent<SimulationResetEvent>());
+        DEBUG_LOG("SimulationEngine", "Published SimulationReset event");
+        
+        // Also publish a wavefunction reset event
+        m_eventBus->publish(makeEvent<WavefunctionResetEvent>(
+            m_wavepacket.x0, m_wavepacket.y0,
+            m_wavepacket.sigmaX, m_wavepacket.sigmaY,
+            m_wavepacket.kx, m_wavepacket.ky
+        ));
+        DEBUG_LOG("SimulationEngine", "Published WavefunctionReset event");
+    }
 }
 
 // Update simulation configuration
 void SimulationEngine::updateConfig(const PhysicsConfig& config) {
+    DEBUG_LOG("SimulationEngine", "Updating configuration: nx=" + std::to_string(config.nx) + 
+              ", ny=" + std::to_string(config.ny) + ", dt=" + std::to_string(config.dt));
+    
     // Clean up old plans
     cleanupFFTWPlans();
     
@@ -263,11 +323,41 @@ void SimulationEngine::updateConfig(const PhysicsConfig& config) {
     
     // Initialize the wavefunction
     initializeWavefunction();
+    
+    // Publish configuration updated event
+    if (m_eventBus) {
+        m_eventBus->publish(makeEvent<ConfigurationUpdatedEvent>("dt", std::to_string(m_dt)));
+        m_eventBus->publish(makeEvent<ConfigurationUpdatedEvent>("nx", std::to_string(m_nx)));
+        m_eventBus->publish(makeEvent<ConfigurationUpdatedEvent>("ny", std::to_string(m_ny)));
+        DEBUG_LOG("SimulationEngine", "Published ConfigurationUpdated events");
+    }
 }
 
 // Set a new potential
 void SimulationEngine::setPotential(std::unique_ptr<Potential> potential) {
+    DEBUG_LOG("SimulationEngine", "Setting new potential of type: " + potential->getType());
+    
+    // Get the potential type and parameters before moving it
+    PotentialChangedEvent::PotentialType type;
+    std::vector<double> parameters;
+    
+    // Map the potential type to the event's potential type
+    if (potential->getType() == "FreeSpace") {
+        type = PotentialChangedEvent::PotentialType::FreeSpace;
+    } else if (potential->getType() == "SquareBarrier") {
+        type = PotentialChangedEvent::PotentialType::SquareBarrier;
+    } else if (potential->getType() == "HarmonicOscillator") {
+        type = PotentialChangedEvent::PotentialType::HarmonicOscillator;
+    }
+    
+    // Move the potential
     m_potential = std::move(potential);
+    
+    // Publish potential changed event
+    if (m_eventBus) {
+        m_eventBus->publish(makeEvent<PotentialChangedEvent>(type, parameters));
+        DEBUG_LOG("SimulationEngine", "Published PotentialChanged event");
+    }
 }
 
 // Get the total probability
