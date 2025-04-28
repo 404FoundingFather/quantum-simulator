@@ -1,0 +1,17 @@
+
+Depending on your system (Linux/Mac/Windows), create the .vscode directory
+in the root of this project, and copy the platform specific files (i.e. mac/)
+to the .vscode directory.
+
+Currently, there are only mac examples.
+
+Alternatively, you if using CoPilot in VS Code (in Agent mode), you could issue this prompt:
+
+Setup visual debugging in VS Code.  Create the appropriate files in the .vscode directory for the [your OS] operating system.
+
+example:
+
+Setup visual debugging in VS Code.  Create the appropriate files in the .vscode directory for the Linux operating system.
+
+
+note:  use Claude 3.7 Sonnet as the CoPilot model
