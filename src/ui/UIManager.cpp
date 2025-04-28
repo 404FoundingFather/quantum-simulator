@@ -80,23 +80,9 @@ bool UIManager::initialize(GLFWwindow* window, const char* glslVersion) {
         return false;
     }
     
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
-
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    
-    DEBUG_LOG("UIManager", "Initializing ImGui backends");
-    // Setup Platform/Renderer backends
-    if (!ImGui_ImplGlfw_InitForOpenGL(window, true) ||
-        !ImGui_ImplOpenGL3_Init(glslVersion)) {
-        std::cerr << "Failed to initialize ImGui backends" << std::endl;
-        DEBUG_LOG("UIManager", "Failed to initialize ImGui backends");
-        return false;
-    }
+    // Note: ImGui context and backend initialization is now handled in main.cpp
+    // so we don't initialize ImGui backends here to avoid double initialization
+    // Both ImGui_ImplGlfw_InitForOpenGL and ImGui_ImplOpenGL3_Init are called in main.cpp
     
     // Subscribe to events
     if (m_eventBus) {
@@ -415,9 +401,11 @@ void UIManager::updateStats(double currentTime, double fps) {
 
 void UIManager::cleanup() {
     if (m_initialized) {
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
+        // We no longer handle ImGui shutdown since main.cpp handles initialization
+        // This is done to follow better design practices where the same component
+        // that initializes a resource also cleans it up
+        
+        // Just mark as uninitialized
         m_initialized = false;
     }
 }

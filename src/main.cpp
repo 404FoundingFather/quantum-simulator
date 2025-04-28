@@ -64,16 +64,6 @@ public:
           visualizationEngine(visualizationEngine),
           uiManager(uiManager) {
         
-        // Register for events
-        if (eventBus) {
-            eventBus->subscribe(EventType::SimulationStarted, std::static_pointer_cast<IEventHandler>(shared_from_this()));
-            eventBus->subscribe(EventType::SimulationPaused, std::static_pointer_cast<IEventHandler>(shared_from_this()));
-            eventBus->subscribe(EventType::SimulationReset, std::static_pointer_cast<IEventHandler>(shared_from_this()));
-            eventBus->subscribe(EventType::SimulationStepCompleted, std::static_pointer_cast<IEventHandler>(shared_from_this()));
-            eventBus->subscribe(EventType::ApplicationExiting, std::static_pointer_cast<IEventHandler>(shared_from_this()));
-            eventBus->subscribe(EventType::UIConfigChanged, std::static_pointer_cast<IEventHandler>(shared_from_this()));
-        }
-        
         // Initialize timing
         lastSimulationUpdateTime = std::chrono::high_resolution_clock::now();
         lastRenderTime = lastSimulationUpdateTime;
@@ -94,6 +84,17 @@ public:
     
     bool initialize() {
         DEBUG_LOG("AppController", "Initializing application controller");
+        
+        // Register for events - moved from constructor to here
+        if (eventBus) {
+            eventBus->subscribe(EventType::SimulationStarted, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+            eventBus->subscribe(EventType::SimulationPaused, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+            eventBus->subscribe(EventType::SimulationReset, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+            eventBus->subscribe(EventType::SimulationStepCompleted, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+            eventBus->subscribe(EventType::ApplicationExiting, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+            eventBus->subscribe(EventType::UIConfigChanged, std::static_pointer_cast<IEventHandler>(shared_from_this()));
+        }
+        
         return true;
     }
     
@@ -435,6 +436,7 @@ int main(int argc, char** argv) {
     std::cout << "Cleaning up..." << std::endl;
     DEBUG_LOG("Main", "Performing application cleanup");
     
+    // Since main.cpp initialized ImGui, it's responsible for the cleanup
     DEBUG_LOG("ImGui", "Shutting down ImGui subsystems");
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
